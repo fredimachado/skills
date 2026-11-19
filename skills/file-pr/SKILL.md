@@ -26,6 +26,10 @@ Titles often become commit messages: follow the repository's conventions
 (read recent merged PRs and `git log`). Prefer a short, human title that says
 why the change matters, not which mechanism changed.
 
+> Bad: `fix(sync): add a per-note save queue`
+>
+> Good: `fix(sync): stop offline edits from saving twice`
+
 ## Description
 
 In this order:
@@ -33,21 +37,42 @@ In this order:
 1. **The problem**, in plain words, from the user's original request.
 2. **The solution**, briefly. Not an inventory of every edit.
 3. **How it was verified** in the running application: what was driven and
-   what was seen, plus the checks that ran.
+   what was seen, plus the checks that ran. Attach a screenshot from the
+   verification run when it shows the behavior better than words and there
+   is a way to upload it.
 4. **What was not verified**, and why.
 5. **Deferred findings**, by id, each with its reason.
-6. **Council**, when one ran: rounds, each seat's role, harness and model, and
+6. **Review**, when a reviewer ran: rounds, the reviewer's harness and model,
+   and the final verdict with the head SHA it covers.
+7. **Council**, when one ran: rounds, each seat's role, harness and model, and
    its verdict per round (`../council/SKILL.md`, "Record").
-7. **Attribution**, last: `Created with <model> in <harness>.` Include every
+8. **Attribution**, last: `Created with <model> in <harness>.` Include every
    model that wrote or reviewed part of the change, with its harness, as the
    harness or `delegate`'s agent-run script reported it. If a model's identity is unknown,
    name the harness and do not guess a model.
+
+Keep it short. Items 3 to 7 take a line or two each unless something went
+wrong. Leave out an item with nothing to say, except item 4: there, write
+"nothing" only when that is true.
+
+The opening is where descriptions go wrong. Bad, an inventory:
+
+> Removed the retry wrapper from `SyncClient`, added `SaveQueue` keyed by
+> note, moved the debounce into `useAutosave`, deleted `flushPending`.
+
+Good, the problem and then the fix:
+
+> Editing a note offline saved it twice once the connection came back, and
+> the second save overwrote newer text. Saves now queue per note, so only the
+> latest one is sent.
 
 ## Check before you submit
 
 Read the title and the whole body for secrets and private details: tokens,
 keys, internal hostnames, personal names or emails that are not already
-public in the repository, private paths. Remove them.
+public in the repository, private paths. Remove them. Quoted logs, command
+output and screenshots count: a screenshot of the running application shows
+whatever data was on the screen.
 
 ## Open it
 

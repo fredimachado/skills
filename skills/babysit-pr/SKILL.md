@@ -74,7 +74,8 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
   cheap-looking fix at a time: fix real bugs in the intended case, decline the
   rest with a reason, prefer the fix that deletes or narrows code.
 - **Never post, reply to or resolve a PR comment without the owner's say.**
-  Put drafted replies in your report.
+  Put drafted replies in your report. `references/replies.md` says how to
+  write one, and how to post it once the owner agrees.
 
 ## Fixing and pushing
 
@@ -104,8 +105,24 @@ merge**, **waiting for human approval**, or **blocked** with the reason and
 the open items by id. When the owner says stop: start no coder and no push,
 record the last verified state, and report.
 
+## When the rate limit runs out
+
+`gh pr view`, `gh pr checks` and the watcher read through GraphQL, and every
+watcher on one GitHub account shares that limit. REST has its own, which
+usually still has room:
+
+- the PR: `gh api repos/<owner>/<repo>/pulls/<n>`
+- its checks: `gh api repos/<owner>/<repo>/commits/<head SHA>/check-runs`
+
+When the watcher exits 1 because GitHub stayed unreachable, read
+`gh api rate_limit --jq .resources.graphql` before you run it again. With
+`remaining` near 0, wait until `reset` (a Unix time) in one bounded wait,
+then start the watcher. Never restart it in a loop.
+
 ## Files
 
+- `references/replies.md`: how to write a reply to a review comment, and how
+  to post it on the owner's say.
 - `scripts/pr-wait.ps1`: the watcher on Windows.
 - `scripts/pr-wait.sh`: the same watcher for Linux and macOS (POSIX sh, gh, jq).
 - Tests for both: `tests/pr-wait.Tests.ps1` at the repository root.
