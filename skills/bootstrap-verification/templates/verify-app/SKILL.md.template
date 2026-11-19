@@ -1,0 +1,169 @@
+---
+name: verify-__APP_SLUG__
+description: Build, run and check __APP_NAME__ (__APP_KIND__) and collect evidence that a change actually works. Use before saying any change to __APP_NAME__ is done, when reproducing or triaging a bug report (including vague ones, like a screenshot with "???"), when checking for regressions, and when investigating or improving performance. Also has the feature map: what each feature does, how a user reaches it, and where its code lives.
+---
+
+# Verify __APP_NAME__
+
+This skill lets you run __APP_NAME__ the same way every time and get evidence that it works.
+Use the bundled CLI instead of writing one-off scripts: it's reproducible across sessions,
+already handles startup/readiness/cleanup, and stores evidence in a consistent place.
+
+All commands run from anywhere inside the repo:
+
+```bash
+python __SKILL_PATH__/scripts/verify.py doctor          # tools + config; is an `up` instance alive and current?
+python __SKILL_PATH__/scripts/verify.py list            # scenarios
+python __SKILL_PATH__/scripts/verify.py run             # smoke scenario
+python __SKILL_PATH__/scripts/verify.py run <name> ...  # specific scenarios; --all; --build
+python __SKILL_PATH__/scripts/verify.py last            # latest summary (paste into the PR)
+python __SKILL_PATH__/scripts/verify.py compare <name>  # metrics: previous run vs latest
+python __SKILL_PATH__/scripts/verify.py up / down       # keep the app running to explore
+python __SKILL_PATH__/scripts/verify.py run map         # check-map + audit-map --strict
+python __SKILL_PATH__/scripts/verify.py check-map       # feature map vs code, specs and scenarios
+python __SKILL_PATH__/scripts/verify.py audit-map       # UI strings in the map missing from the source
+python __SKILL_PATH__/scripts/verify.py stale-map       # features whose code changed after their map entry
+```
+
+Evidence for each run goes to `.verify/runs/<timestamp>-<scenario>/`: step output, service
+logs, HTTP responses, screenshots, metrics, plus `summary.md`. Read the summary first
+(`verify.py last`) and open the raw logs only for a step that failed or looks wrong.
+
+If another agent ran the verification for you, its report is a claim. Read that run's
+`summary.md` yourself before repeating the result.
+
+## Definition of done
+
+A change to __APP_NAME__ is done when:
+
+1. The relevant scenarios pass: `smoke` plus the scenarios listed under the affected
+   features in `feature-map.md`.
+2. If the change adds or alters user-visible behaviour, a scenario covers it (add or update
+   one in `verify.config.json`).
+3. `verify.py run map` passes.
+4. The PR or final message includes the `summary.md` of the run (from `verify.py last`).
+
+Report one of three verdicts: **verified**, **not verified**, or **inconclusive**. If
+verification is impossible in this environment (missing tool, no display), or only ran on a
+different surface than the one users touch, the verdict is inconclusive: say exactly which
+step couldn't run and why. Inconclusive is not a pass.
+
+## Evidence
+
+A proof passes only with all of these:
+
+- The real user path (click, type, submit, run the command), not internal setters, test-only
+  hooks, or data planted directly in storage.
+- The action **and** the resulting state, not only the last screenshot.
+- A side effect next to the visible UI: URL, persisted record, storage key, API response, or
+  a second screen that re-reads the same data.
+- A structure snapshot (accessibility tree, text capture) plus a screenshot that show the
+  feature.
+- Every entry point the feature map lists. A broken entry point is a failure for that path,
+  not a pass through another one.
+
+Only drive processes this skill started. Never attach to a dev server someone left running:
+it may be serving another branch.
+
+The same goes for an instance you started earlier with `up`. Run `doctor` before driving
+it, and again after anything surprising. It fails if the instance has died or was started
+at a different commit, and notes files edited since it started. Unless the app hot-reloads,
+restart it (`down`, then `up`) after changing code: a pass against old code proves nothing.
+`run` starts its own services and refuses while the same service is still up.
+
+## Finding a feature (vague reports)
+
+`feature-map.md` describes every feature: what it does, how a user reaches it (URL, menu,
+shortcut, command), how to identify it in the UI, which code implements it, and which
+scenarios verify it. When a report is vague, match its words, screenshot details, or
+error text against the map before guessing. Then reproduce it with `up` plus the drivers,
+or by writing a scenario that fails.
+
+## Reproducing a bug
+
+1. Find the feature in the map.
+2. Name the state that separates broken from correct (a value, a visible element, an exit
+   code). A loading screen or a setup step is not the bug.
+3. Write a scenario (or extra steps) that shows the bug and **fails** on that state. Run it
+   twice to confirm, from a clean state each time, so the second failure isn't left over
+   from the first.
+4. Fix the code.
+5. Run it again; it should now pass. Keep it: it's a regression test now.
+
+## Performance work
+
+1. Run the relevant scenario 2–3 times to see the noise level, using metrics and budgets in
+   the config.
+2. Change one thing.
+3. `verify.py run <scenario>` then `verify.py compare <scenario>`.
+4. Keep the change only if the improvement is larger than the noise. Repeat.
+
+Add a `budgets` entry to the scenario once you have a good number, so regressions fail.
+
+## Drivers
+
+Helpers in `scripts/drivers/`, called from scenario steps or directly:
+
+- `web_playwright.py`: web UIs and Electron/Chromium (via `--cdp`): clicks, text checks,
+  screenshots, console errors, perf metrics, traces, heap snapshots.
+- `tui_tmux.py`: terminal UIs and interactive CLIs: send keys, wait for text, capture screens.
+- `screenshot.py`: desktop screenshots on Linux, macOS and Windows.
+
+Each driver documents its options at the top of the file.
+
+## Keeping this skill healthy
+
+This skill is shared infrastructure: when it's wrong, every agent is wrong.
+
+- When you add a feature: add it to `feature-map.md` and give it a scenario.
+- When you rename or move code: update the `code:` paths in the map. `check-map` catches
+  stale ones.
+- When UI copy changes: run `audit-map` and fix any recipe that quotes the old text. Keep
+  exact selectors in the executable tests and point to them, rather than copying them here.
+- When a scenario is flaky: fix the readiness check or wait condition. Don't add sleeps or
+  retries that hide the problem.
+- When the map or a scenario disagrees with the app, decide which kind it is before
+  editing anything:
+  - **Doc drift**: the app is right and the map is stale. Fix the map.
+  - **Harness gap**: the app works but the harness can't drive or observe it. Fix the
+    harness, then run it again for real.
+  - **Product regression**: the map is right and the app is broken. Report it. Never edit
+    the map or loosen a scenario to make a regression pass.
+- When you learn something non-obvious about running the app, add it to *Gotchas* below.
+
+## Audit pass
+
+Run this when asked to audit or refresh this skill, when the map looks wrong, and as part
+of periodic gardening. Edit only this skill's folder. Never change product code during an
+audit: if the app is broken, that's a finding to report, not something to fix here or to
+hide by editing the map.
+
+1. Run `verify.py run map` and fix what `check-map` and `audit-map` report.
+2. Run `verify.py stale-map`. For each feature it lists, read the commits it names and the
+   code, and compare them with the entry (`what`, `reach`, `ui`, its recipe). Correct what
+   changed. If the entry is still right, update its `reviewed:` date; that edit is what
+   clears the flag.
+3. Run `verify.py run --all`. Then run for real every prose recipe you touched in step 2,
+   and any recipe with no scenario behind it. A recipe that hasn't been executed is a guess.
+4. For `smoke` and each scenario whose feature you touched, check it can still fail: change
+   what it expects to something wrong, confirm the run fails with a clear message, and
+   revert. A scenario that passes whatever it's told to expect isn't checking anything.
+5. Compare each budget with what recent runs produce (`verify.py compare`, or the metrics
+   in `summary.md`). Tighten a budget that sits far above them, so a regression would fail.
+6. Classify every disagreement between the map and the app as doc drift, harness gap or
+   product regression (see above), and act accordingly.
+
+Finish with exactly one outcome:
+
+- **clean**: every feature was covered and nothing needed changing.
+- **changed**: list each correction (map, recipe, scenario, harness), each one proven by
+  a run.
+- **blocked**: say what couldn't be covered, and why.
+
+A feature you couldn't reach counts as covered only if you name the concrete prerequisite
+(credentials, a licence, an operating system, an external service) and the route you tried.
+If the map doesn't mention that prerequisite, add it.
+
+## Gotchas
+
+__GOTCHAS__

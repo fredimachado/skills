@@ -1,0 +1,76 @@
+# Review criteria
+
+Review the diff, not the author's report. The report says where to look and
+what was skipped; the code says what was done.
+
+## Two kinds of finding
+
+- **must-fix**: the change is wrong or unsafe to build on. Incorrect
+  behavior, a broken contract from the plan, failing build or tests, a
+  scenario that does not work when driven in the real application, data loss
+  or a security hole, a behavior change with no test and no accepted
+  justification, or a root cause hidden behind a guard.
+- **should-fix**: it works, but leaves a real cost a careful maintainer would
+  insist on removing. One decision living in two places, a plausible edge
+  case unhandled, a test that pins implementation instead of behavior, a
+  misleading name on a public surface.
+
+Leave everything else alone. Style preferences, naming taste, equally good
+alternative approaches, and anything a formatter handles are not findings.
+Each round costs a full fix turn, and nit-picks bury the findings that
+matter.
+
+**Severity rule.** Severity follows what the change claimed or exercised,
+not the fact that the standards were in the brief (they always are). Prefer
+must-fix when the change claimed the behavior, ran TDD for a behavior
+change, or touched migration, shared-state or crash-recovery invariants.
+Prefer should-fix for Practice items (commit message shape, action log) and
+for standards the change did not claim or exercise.
+
+## Criteria, every round
+
+Besides correctness and regressions in scope, check the coding standards,
+especially:
+
+- **Plan fit**: material divergence from the accepted plan without a
+  recorded amendment. Must-fix or should-fix by how far it diverges.
+- **TDD**: on behavior-changing work, a failing test before the production
+  change, and the smallest change that passes. An escape without a concrete
+  impracticality note is must-fix.
+- **Behavior, not implementation**: tests exercise the caller's contract;
+  hollow tests go.
+- **Root causes**: no crash-hiding guard presented as a fix.
+- **Attack the premise**: repeated failures of one gate that share an
+  assumption. Must-fix to name and change that assumption.
+- **Boundary and type discipline**: validate at the edge; illegal values
+  unrepresentable; no silenced compiler.
+- **Subtract before add**: complexity added without removing any.
+- **No bolted-on design**: a requirement patched onto a design that cannot
+  hold it.
+- **Idempotency and single writer**: must-fix when the change touches
+  migration, shared state or crash recovery; otherwise should-fix.
+- **Invariants**: each listed invariant has its test, and it passes.
+- **Commit quality and action log**: Practice; should-fix unless proof for a
+  claimed must-fix behavior is missing.
+
+## Deciding on should-fix
+
+Fix now when the fix is small and inside code the change already touches.
+Defer to a later change when it widens the scope, touches unrelated code, or
+needs a design decision of its own, and record the reason. When the review
+budget is spent, defer rather than apply a fix nobody will review. Must-fix
+items are never deferred; if one cannot be fixed, stop and tell the owner.
+
+## Ledger
+
+The caller keeps it; with `orchestrate` it lives in the task file.
+
+| Id | Severity | Where | Finding | Raised by | Outcome |
+|---|---|---|---|---|---|
+| F1 | must-fix | `path/file.go:42` | what is wrong; what correct looks like | reviewer (harness/model) | fixed in `9ab0cde` |
+
+Outcome is one of: open · fixed in `<sha>` · declined with evidence:
+`<evidence>` · deferred: `<reason>` · disputed: both sides in one line each.
+Ids are stable for the whole change and never reused. A finding that comes
+back in a later round keeps its id. Mark a finding fixed only after you
+checked the fix yourself.

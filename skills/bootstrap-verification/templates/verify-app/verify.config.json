@@ -1,0 +1,40 @@
+{
+  "app": "__APP_NAME__",
+  "kind": "__APP_KIND__",
+  "requires": [],
+  "vars": {},
+  "env": {},
+  "build": null,
+  "services": {},
+  "display": {
+    "xvfb": "never"
+  },
+  "map_path_fields": [
+    "code"
+  ],
+  "map_coverage": [],
+  "map_handle_sources": [],
+  "map_handle_ignore": [],
+  "scenarios": {
+    "smoke": {
+      "description": "The app builds, starts and its main entry point responds.",
+      "features": [],
+      "needs": [],
+      "steps": []
+    },
+    "map": {
+      "description": "Feature map integrity: paths exist, everything in map_coverage is mapped, scenarios exist.",
+      "features": [],
+      "steps": [
+        {
+          "name": "check-map",
+          "run": [
+            "{python}",
+            "{skill}/scripts/verify.py",
+            "check-map"
+          ]
+        }
+      ]
+    }
+  }
+}

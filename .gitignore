@@ -1,0 +1,13 @@
+# This repository may be cloned into a folder where skills are installed, such as
+# ~/.agents/skills: then install.ps1/install.sh links and APM put skill folders next to
+# these files. Track only what belongs to the repository.
+/*
+!/.github/
+!/.gitattributes
+!/.gitignore
+!/README.md
+!/apm/
+!/archive/
+!/scripts/
+!/skills/
+!/tests/

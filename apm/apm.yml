@@ -1,0 +1,20 @@
+name: fredimachado-skills
+version: 1.0.0
+description: >-
+  Third-party skills used with this repository's own skills. Installed at user scope
+  for Claude Code, Codex and Cursor by scripts/sync-apm.ps1; edit this file, then run
+  that script and commit apm.lock.yaml.
+targets:
+  - claude
+  - codex
+  - cursor
+dependencies:
+  apm:
+    # All eight Aspire skills: the aspire router hands work to the others.
+    - microsoft/aspire-skills#v0.0.6
+    # Only the six ponytail skills. The repository root is a package with hooks
+    # for every harness, which were never installed here and APM refuses as-is.
+    - DietrichGebert/ponytail/skills#v5.3.3
+  mcp: []
+includes: auto
+scripts: {}
