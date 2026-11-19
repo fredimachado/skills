@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy to ~/.agents/roles.json and fill in. harness is claude, codex or cursor. model is the id or alias that harness accepts. effort is optional. A role left empty is unavailable: skills stop and ask instead of choosing a model. hostOverrides.<host>.<role> replaces roles.<role> whole when that host runs the session (effort levels belong to one harness).",
+  "$comment": "Copy to ~/.agents/roles.json and fill in, or let scripts/install.ps1 -Roles (install.sh --roles) ask and write it. harness is claude, codex or cursor. model is the id or alias that harness accepts. effort is optional. A role left empty is unavailable: skills stop and ask instead of choosing a model. hostOverrides.<host>.<role> replaces roles.<role> whole when that host runs the session (effort levels belong to one harness).",
   "roles": {
     "planner":       { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
     "coder-simple":  { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
