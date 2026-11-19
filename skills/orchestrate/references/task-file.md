@@ -33,9 +33,9 @@ You are its only writer. Write each entry when it happens, not at the end.
 - Revision: none | 1 (planner session <id>) → pass | fail
 
 ## Rounds
-| Task | Round | Base SHA | Reviewed head SHA | Reviewer (role · harness/model) | Verdict | Open must-fix |
-|---|---|---|---|---|---|---|
-| T1 | 1 | abc1234 | def5678 | reviewer · <harness>/<model> | changes | F1 |
+| Task | Round | Base SHA | Reviewed head SHA | Reviewer (role · harness/model) | Verdict | Open must-fix | Diff (`--shortstat`) |
+|---|---|---|---|---|---|---|---|
+| T1 | 1 | abc1234 | def5678 | reviewer · <harness>/<model> | changes | F1 | 4 files, +120 -15 |
 
 ## Council (risky work only)
 | Round | Head SHA | council-a (harness/model) | council-b (harness/model) |
