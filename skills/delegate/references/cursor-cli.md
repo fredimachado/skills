@@ -2,7 +2,8 @@
 
 Checked on Cursor Agent 2026.11.17, Windows 11, 2026-11-19. Flags change
 between versions: run `pwsh -NoProfile -File <delegate dir>/scripts/agent-run.ps1
--Check` before relying on this page.
+-Check` (Windows) or `sh <delegate dir>/scripts/agent-run.sh -Check` (Linux,
+macOS; needs `jq`) before relying on this page.
 
 On Windows the CLI installs `cursor-agent.cmd`, `cursor-agent.ps1` and
 `agent.cmd`; Git Bash cannot resolve the bare name `cursor-agent`. The script

@@ -43,6 +43,9 @@ for each role. Copy [roles.example.json](skills/delegate/roles.example.json) the
 fill it in; a role left empty is reported as unavailable, never replaced with another
 model.
 
+`delegate` and `babysit-pr` come with scripts: PowerShell 7 on Windows, plain `sh` with
+`jq` on Linux and macOS (`babysit-pr` also needs `gh`).
+
 ## Update
 
 Run the same install command again to fetch the current version. Use the same project

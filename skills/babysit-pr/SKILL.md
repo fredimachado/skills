@@ -1,6 +1,6 @@
 ---
 name: babysit-pr
-description: Watch one of your own pull requests through CI and review with the pr-wait.ps1 watcher, triage what arrives, get fixes made and pushed in batches, and report when it is ready, waiting for a human, or blocked. Use when the user asks to monitor, watch, babysit or shepherd a pull request, to wait for its checks or reviews, or when orchestrate's finish condition is merge-ready. Never merges. Do not use for a pull request this session does not own, or when running as a delegate.
+description: Watch one of your own pull requests through CI and review with the pr-wait watcher, triage what arrives, get fixes made and pushed in batches, and report when it is ready, waiting for a human, or blocked. Use when the user asks to monitor, watch, babysit or shepherd a pull request, to wait for its checks or reviews, or when orchestrate's finish condition is merge-ready. Never merges. Do not use for a pull request this session does not own, or when running as a delegate.
 ---
 
 # Babysit PR
@@ -15,26 +15,31 @@ pull requests you are not working on.
 
 ## Before you start
 
-Check at the point of use: `pwsh` 7 exists, `gh` exists, and `gh auth status`
-passes. If not, say which is missing and stop; never sign in for the user.
+Check at the point of use: `gh` exists and `gh auth status` passes; on Windows
+`pwsh` 7 exists, on Linux and macOS `jq` exists. If not, say which is missing
+and stop; never sign in for the user.
 Find the PR (number or URL) and its repository.
 
 ## Waiting: one watcher, never your own loop
 
-Run the watcher from this skill's directory, by absolute path:
+Run the watcher from this skill's directory, by absolute path. Both scripts take
+the same arguments and behave the same:
 
 ```
+# Windows
 pwsh -NoProfile -File <this skill's dir>/scripts/pr-wait.ps1 <pr> [-Repo owner/name]
      [-Until green|ready|any-change] [-IntervalSec 20] [-MaxWaitSec <n>] [-Once]
      [-GatingBots <names>] [-Json]
+# Linux, macOS (needs gh and jq)
+sh <this skill's dir>/scripts/pr-wait.sh <pr> [-Repo owner/name] [same options]
 ```
 
-Its header documents the contract. In short: stdout is one line per real
+Their headers document the contract. In short: stdout is one line per real
 event; exit **0** means the `-Until` condition is met on the current head or
 the PR merged; **1** means action is needed (a check failed, conflicts, PR
 closed, unresolved threads, branch behind, GitHub unreachable); **2** is bad
-input, `gh` missing or signed out, or another watcher already holds this PR;
-**3** means still pending when `-MaxWaitSec` ran out: run it again.
+input, `gh` (or `jq` for the sh script) missing, `gh` signed out, or another
+watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran out: run it again.
 
 - `-Until ready` (default): gating checks green, every gating bot reviewed the
   head, no unresolved thread, not behind. Name the repository's review bots
@@ -46,7 +51,7 @@ input, `gh` missing or signed out, or another watcher already holds this PR;
   `-MaxWaitSec` under the host's command time limit, and run it again on exit 3.
 - **Never write another polling or sleep loop**, and never run two watchers on
   one PR. If it says another pid already watches, do not start a second one.
-- State and the lock live in a per-user folder (see the script's header). On
+- State and the lock live in a per-user folder (see the script header). On
   a sandboxed host that cannot write there (Codex `workspace-write`), set
   `PR_WAIT_STATE_DIR` to a writable folder and keep using the same one, or a
   restart cannot report what it missed.
@@ -93,7 +98,7 @@ input, `gh` missing or signed out, or another watcher already holds this PR;
 
 ## Handing off
 
-Before you report, read the live PR again (`pr-wait.ps1 -Once`, or `gh pr
+Before you report, read the live PR again (the watcher with `-Once`, or `gh pr
 view`): head SHA, checks, reviews, mergeability. Report one of: **ready to
 merge**, **waiting for human approval**, or **blocked** with the reason and
 the open items by id. When the owner says stop: start no coder and no push,
@@ -101,4 +106,6 @@ record the last verified state, and report.
 
 ## Files
 
-- `scripts/pr-wait.ps1`: the watcher. Tests: `tests/pr-wait.Tests.ps1` at the repository root.
+- `scripts/pr-wait.ps1`: the watcher on Windows.
+- `scripts/pr-wait.sh`: the same watcher for Linux and macOS (POSIX sh, gh, jq).
+- Tests for both: `tests/pr-wait.Tests.ps1` at the repository root.

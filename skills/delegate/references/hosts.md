@@ -56,14 +56,15 @@ your tool list, use the fallback in the same row.
 No host enforces read-only on a native subagent per spawn: Claude Code and
 Cursor subagents get the parent's tools, and Codex subagents inherit the
 parent's sandbox. A native read-only role rests on its brief. The CLI route
-enforces read-only with each CLI's own flag, and `agent-run.ps1` fails a
+enforces read-only with each CLI's own flag, and the script (`agent-run.ps1` or `agent-run.sh`) fails a
 read-only run that changed the work directory. What each CLI's read-only
 mode still allows is in `claude-cli.md`, `codex-cli.md` and `cursor-cli.md`.
 
 ## Run the CLI route
 
-`pwsh -NoProfile -File <absolute path>/agent-run.ps1 ...` from any shell.
-The delegate CLI needs network access and writes its own session files.
+On Windows, `pwsh -NoProfile -File <absolute path>/agent-run.ps1 ...` from
+any shell. On Linux and macOS, `sh <absolute path>/agent-run.sh ...` with the
+same parameters; it needs `jq`. The delegate CLI needs network access and writes its own session files.
 
 | Host | How |
 |---|---|

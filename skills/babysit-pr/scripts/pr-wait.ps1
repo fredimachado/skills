@@ -515,7 +515,7 @@ while ($true) {
     $firstPoll = $false
     $elapsed = $clock.Elapsed.TotalSeconds
     if ($Once -or ($MaxWaitSec -gt 0 -and $elapsed + $IntervalSec -gt $MaxWaitSec)) {
-        Complete-Watch 3 'final:pending' 'pending' "$pending after $([math]::Round($elapsed))s; run pr-wait again"
+        Complete-Watch 3 'final:pending' 'pending' "$pending after $([math]::Round($elapsed))s; run pr-wait again" -Failed:$Baseline
     }
     Start-Sleep -Seconds $IntervalSec
 }

@@ -40,7 +40,7 @@ In this order:
    its verdict per round (`../council/SKILL.md`, "Record").
 7. **Attribution**, last: `Created with <model> in <harness>.` Include every
    model that wrote or reviewed part of the change, with its harness, as the
-   harness or `agent-run.ps1` reported it. If a model's identity is unknown,
+   harness or `delegate`'s agent-run script reported it. If a model's identity is unknown,
    name the harness and do not guess a model.
 
 ## Check before you submit

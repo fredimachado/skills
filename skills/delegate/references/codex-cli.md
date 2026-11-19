@@ -2,7 +2,8 @@
 
 Checked on codex-cli 0.166.0, Windows 11, 2026-11-19. Flags change between
 versions: run `pwsh -NoProfile -File <delegate dir>/scripts/agent-run.ps1
--Check` before relying on this page.
+-Check` (Windows) or `sh <delegate dir>/scripts/agent-run.sh -Check` (Linux,
+macOS; needs `jq`) before relying on this page.
 
 ## What `agent-run.ps1` runs
 

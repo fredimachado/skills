@@ -1,5 +1,9 @@
 name: test
 
+# The .ps1 scripts are for Windows and the .sh scripts for Linux and macOS, so each runs
+# where it is meant to: TEST_SCRIPT_KINDS tells the Pester tests which kind to exercise.
+# Pester itself runs under pwsh, which every hosted runner has; the .sh scripts never need it.
+
 on:
   pull_request:
   push:
@@ -12,15 +16,30 @@ concurrency:
 
 jobs:
   pester:
-    name: Pester (${{ matrix.os }})
+    name: ${{ matrix.kinds }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            kinds: ps1
+          - os: ubuntu-latest
+            kinds: sh
+          - os: macos-latest
+            kinds: sh
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      TEST_SCRIPT_KINDS: ${{ matrix.kinds }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check the sh scripts' tools
+        if: matrix.kinds == 'sh'
+        shell: sh
+        run: |
+          for tool in sh git jq pgrep; do command -v "$tool" || { echo "missing: $tool"; exit 1; }; done
+          for f in scripts/*.sh skills/*/scripts/*.sh; do sh -n "$f" || exit 1; done
 
       - name: Install Pester 5
         shell: pwsh
@@ -47,3 +66,11 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: test-results.xml
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the sh scripts as POSIX sh
+        run: shellcheck --shell=sh --severity=warning scripts/*.sh skills/*/scripts/*.sh
