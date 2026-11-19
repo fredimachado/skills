@@ -56,6 +56,36 @@ the harness refuses, is reported as unavailable, never replaced with another mod
 Run the same install command again to fetch the current version. Use the same project
 directory or the same `--global` option as before.
 
+## For agents installing these skills
+
+If someone asks you to install this repository's skills:
+
+1. **Use one route.** Use `npx skills` unless they say they will work on this repository;
+   then clone it and run the install script instead (see "Working on this repository").
+   Never run both: `npx skills` replaces the script's links with copies, and the clone stops
+   updating what the harnesses read. Use APM only if they ask for it.
+2. **Ask which harnesses and which skills**, then run the command without prompts. For all
+   skills on all three harnesses:
+
+   ~~~sh
+   npx skills@latest add fredimachado/skills --global --skill '*' -a claude-code -a codex -a cursor -y
+   ~~~
+
+   Drop an `-a` for a harness they don't use, or name skills with `--skill` instead of `'*'`.
+3. **Set up the roles if they installed `delegate`** (or `orchestrate`, `plan`, `council`
+   or `review-loop`, which use it). Never choose models yourself. If they have a clone and
+   a terminal, tell them to run `install.ps1 -Roles` or `install.sh --roles`. Otherwise ask
+   them, for each role (planner, coder-simple, coder-complex, reviewer, council-a,
+   council-b): the harness (claude, codex or cursor); the model, offering the names listed
+   for that harness in [scripts/models.txt](scripts/models.txt) or one they type exactly;
+   and an effort level, except for Cursor, whose models carry the effort in the name. Then
+   ask whether any harness should use different roles when it runs the session (host
+   overrides). Write `~/.agents/roles.json` in the shape of
+   [roles.example.json](skills/delegate/roles.example.json). If the file exists, show them
+   the change before writing and keep the old one as `roles.json.bak`.
+4. **Check the result:** list `~/.claude/skills` and `~/.agents/skills`, and tell them to
+   start a new session in each harness so it loads the skills.
+
 ## Install with APM
 
 [APM](https://github.com/microsoft/apm) installs the same skills from this repository and
