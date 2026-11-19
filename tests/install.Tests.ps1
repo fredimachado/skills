@@ -16,11 +16,23 @@ BeforeAll {
         New-Item -ItemType Directory -Force $t | Out-Null
         $t
     }
-    function script:Invoke-Install([string] $Kind, [string[]] $Targets) {
-        $out = if ($Kind -eq 'ps1') { & $Pwsh -NoProfile -File (Join-Path $Repo 'scripts/install.ps1') @Targets 2>&1 }
-               else { & sh (Join-Path $Repo 'scripts/install.sh') @Targets 2>&1 }
-        [pscustomobject]@{ Out = @($out | ForEach-Object { "$_" }); Code = $LASTEXITCODE }
+    # Runs the script with a sandbox home (so the role file is never the real one) and piped
+    # input: the answers, one per line, or none. -Ask sets INSTALL_ROLES_PROMPT=1, which makes
+    # the script ask although its input is not a terminal.
+    function script:Invoke-Install([string] $Kind, [string[]] $Targets, [string] $HomeDir = (New-Target), [string[]] $Answers = @(), [switch] $Ask) {
+        $saved = @{ HOME = $env:HOME; USERPROFILE = $env:USERPROFILE; INSTALL_ROLES_PROMPT = $env:INSTALL_ROLES_PROMPT }
+        $env:HOME = $HomeDir; $env:USERPROFILE = $HomeDir
+        $env:INSTALL_ROLES_PROMPT = if ($Ask) { '1' } else { $null }
+        try {
+            $out = if ($Kind -eq 'ps1') { $Answers | & $Pwsh -NoProfile -File (Join-Path $Repo 'scripts/install.ps1') @Targets 2>&1 }
+                   else { $Answers | & sh (Join-Path $Repo 'scripts/install.sh') @Targets 2>&1 }
+            $code = $LASTEXITCODE
+        } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+        [pscustomobject]@{ Out = @($out | ForEach-Object { "$_" }); Code = $code; Text = (@($out | ForEach-Object { "$_" }) -join "`n") }
     }
+    function script:Get-RoleFile([string] $HomeDir) { Join-Path $HomeDir '.agents/roles.json' }
+    function script:Read-RoleFile([string] $HomeDir) { Get-Content -LiteralPath (Get-RoleFile $HomeDir) -Raw | ConvertFrom-Json -AsHashtable }
+    $script:RolesFlag = @{ ps1 = '-Roles'; sh = '--roles' }
     function script:Get-LinkTarget([string] $Path) {
         $item = Get-Item -LiteralPath $Path -Force
         if (-not $item.LinkType) { return $null }
@@ -55,9 +67,7 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
     It 'with no target, uses ~/.claude/skills and ~/.agents/skills' {
         if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
         $home2 = New-Target
-        $saved = @{ HOME = $env:HOME; USERPROFILE = $env:USERPROFILE }
-        $env:HOME = $home2; $env:USERPROFILE = $home2
-        try { $r = Invoke-Install $Kind @() } finally { $env:HOME = $saved.HOME; $env:USERPROFILE = $saved.USERPROFILE }
+        $r = Invoke-Install $Kind @() -HomeDir $home2
         $r.Code | Should -Be 0
         Get-LinkTarget (Join-Path $home2 '.claude/skills/delegate') | Should -Be (Join-Path $SkillsDir 'delegate')
         Get-LinkTarget (Join-Path $home2 '.agents/skills/delegate') | Should -Be (Join-Path $SkillsDir 'delegate')
@@ -128,5 +138,157 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
         $null = Invoke-Install $Kind @($t)
         Test-Path -LiteralPath (Join-Path $t 'orchestrate/../babysit-pr/SKILL.md') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $t 'delegate/scripts/agent-run.ps1') | Should -BeTrue
+    }
+
+    Context 'the role file' {
+        It 'without a terminal, says how to make a missing role file and writes nothing' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            $r = Invoke-Install $Kind @((New-Target)) -HomeDir $h
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match "no role file.*$([regex]::Escape($RolesFlag[$Kind]))"
+            $r.Text | Should -Not -Match '\[Y/n\]'
+            Test-Path -LiteralPath (Get-RoleFile $h) | Should -BeFalse
+        }
+        It 'leaves an existing role file alone and names the option that changes it' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            New-Item -ItemType Directory (Split-Path (Get-RoleFile $h)) | Out-Null
+            Set-Content -LiteralPath (Get-RoleFile $h) -Value '{"roles":{}}' -NoNewline
+            $r = Invoke-Install $Kind @((New-Target)) -HomeDir $h -Ask
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match "is set up.*$([regex]::Escape($RolesFlag[$Kind]))"
+            Get-Content -LiteralPath (Get-RoleFile $h) -Raw | Should -Be '{"roles":{}}'
+        }
+        It 'when it is missing, asks for every role and writes what was answered' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target; $t = New-Target
+            $answers = @(
+                'y'                                  # set it up now
+                'claude', 'model-a', 'high'          # planner
+                'codex', '', 'model-b', ''           # coder-simple: the model is asked again until given
+                ''                                   # coder-complex: left unavailable
+                'bogus', 'cursor', 'model-c', ''     # reviewer: an unknown harness is asked again
+                'claude', 'model-d', 'max'           # council-a
+                'codex', 'model-e', 'high'           # council-b
+                '', 'n', 'y'                         # overrides: none for claude or codex; cursor has one
+                '', 'cursor', 'model-f', '', '', '', '', ''
+                ''                                   # write it
+            )
+            $r = Invoke-Install $Kind @($t) -HomeDir $h -Answers $answers -Ask
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match 'harness is claude, codex or cursor'
+            $r.Text | Should -Match 'a model is needed'
+            $r.Text | Should -Match 'codex debug models'
+            Get-LinkTarget (Join-Path $t 'plan') | Should -Be (Join-Path $SkillsDir 'plan')
+            $doc = Read-RoleFile $h
+            $doc['$comment'] | Should -Match ([regex]::Escape($RolesFlag[$Kind]))
+            @($doc.roles.Keys) | Should -Be @('planner', 'coder-simple', 'reviewer', 'council-a', 'council-b')
+            $doc.roles.planner | Should -BeOfType [System.Collections.IDictionary]
+            "$($doc.roles.planner.harness)/$($doc.roles.planner.model)/$($doc.roles.planner.effort)" | Should -Be 'claude/model-a/high'
+            "$($doc.roles['coder-simple'].harness)/$($doc.roles['coder-simple'].model)" | Should -Be 'codex/model-b'
+            $doc.roles['coder-simple'].Contains('effort') | Should -BeFalse
+            "$($doc.roles.reviewer.harness)/$($doc.roles.reviewer.model)" | Should -Be 'cursor/model-c'
+            "$($doc.roles['council-a'].model)/$($doc.roles['council-a'].effort)" | Should -Be 'model-d/max'
+            "$($doc.roles['council-b'].model)/$($doc.roles['council-b'].effort)" | Should -Be 'model-e/high'
+            @($doc.hostOverrides.Keys) | Should -Be @('cursor')
+            @($doc.hostOverrides.cursor.Keys) | Should -Be @('coder-simple')
+            "$($doc.hostOverrides.cursor['coder-simple'].harness)/$($doc.hostOverrides.cursor['coder-simple'].model)" | Should -Be 'cursor/model-f'
+            Test-Path -LiteralPath "$(Get-RoleFile $h).bak" | Should -BeFalse
+        }
+        It 'answering no to setting it up writes nothing' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            $r = Invoke-Install $Kind @((New-Target)) -HomeDir $h -Answers @('n') -Ask
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match 'not set up'
+            Test-Path -LiteralPath (Get-RoleFile $h) | Should -BeFalse
+        }
+        It 'the roles option asks again with the current values, keeps other keys, and keeps a backup' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            New-Item -ItemType Directory (Split-Path (Get-RoleFile $h)) | Out-Null
+            $old = @'
+{
+  "$comment": "keep me",
+  "roles": {
+    "planner": { "harness": "claude", "model": "old-p", "effort": "high" },
+    "coder-simple": { "harness": "codex", "model": "old-s" },
+    "coder-complex": { "harness": "claude", "model": "old-c", "effort": "xhigh" },
+    "reviewer": { "harness": "cursor", "model": "old-r", "effort": "low" },
+    "council-a": { "harness": "claude", "model": "old-a" },
+    "council-b": { "harness": "codex", "model": "old-b", "effort": "high" }
+  },
+  "hostOverrides": { "cursor": { "coder-simple": { "harness": "cursor", "model": "old-cs" } } },
+  "other": 1
+}
+'@
+            Set-Content -LiteralPath (Get-RoleFile $h) -Value $old -NoNewline
+            $answers = @(
+                'codex', 'model-z', ''               # planner: a new harness offers no old model or effort
+                '', '', ''                           # coder-simple: kept
+                '', '', ''                           # coder-complex: kept
+                '', '', '-'                          # reviewer: effort cleared
+                '', '', ''                           # council-a: kept
+                '-'                                  # council-b: cleared
+                '', '', ''                           # overrides: none for claude or codex; cursor kept (default yes)
+                '', '', '', '', '', '', '', ''       # cursor: planner none, coder-simple kept, the rest none
+                ''                                   # write it
+            )
+            $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers $answers -Ask
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match '\[old-s\]'
+            $r.Text | Should -Not -Match '(?m)^linked:'
+            Test-Path -LiteralPath (Join-Path $h '.claude') | Should -BeFalse
+            $doc = Read-RoleFile $h
+            @($doc.Keys) | Should -Be @('$comment', 'roles', 'hostOverrides', 'other')
+            $doc['$comment'] | Should -Be 'keep me'
+            $doc.other | Should -Be 1
+            @($doc.roles.Keys) | Should -Be @('planner', 'coder-simple', 'coder-complex', 'reviewer', 'council-a')
+            "$($doc.roles.planner.harness)/$($doc.roles.planner.model)" | Should -Be 'codex/model-z'
+            $doc.roles.planner.Contains('effort') | Should -BeFalse
+            "$($doc.roles['coder-complex'].model)/$($doc.roles['coder-complex'].effort)" | Should -Be 'old-c/xhigh'
+            $doc.roles.reviewer.Contains('effort') | Should -BeFalse
+            "$($doc.hostOverrides.cursor['coder-simple'].model)" | Should -Be 'old-cs'
+            Get-Content -LiteralPath "$(Get-RoleFile $h).bak" -Raw | Should -Be $old
+        }
+        It 'answering no at the end leaves the role file as it was' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            New-Item -ItemType Directory (Split-Path (Get-RoleFile $h)) | Out-Null
+            Set-Content -LiteralPath (Get-RoleFile $h) -Value '{"roles":{}}' -NoNewline
+            $answers = @('claude', 'model-a', '') + @('') * 5 + @('', '', '') + @('n')
+            $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers $answers -Ask
+            $r.Code | Should -Be 0
+            $r.Text | Should -Match 'Not written'
+            Get-Content -LiteralPath (Get-RoleFile $h) -Raw | Should -Be '{"roles":{}}'
+            Test-Path -LiteralPath "$(Get-RoleFile $h).bak" | Should -BeFalse
+        }
+        It 'the roles option without a terminal stops with exit 2' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h
+            $r.Code | Should -Be 2
+            $r.Text | Should -Match 'need a terminal'
+            Test-Path -LiteralPath (Get-RoleFile $h) | Should -BeFalse
+        }
+        It 'input that ends early writes nothing and stops with exit 2' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers @('claude', 'model-a') -Ask
+            $r.Code | Should -Be 2
+            $r.Text | Should -Match 'Input ended'
+            Test-Path -LiteralPath (Get-RoleFile $h) | Should -BeFalse
+        }
+        It 'a role file that is not JSON is reported and left alone' {
+            if ($Skip) { Set-ItResult -Skipped -Because "TEST_SCRIPT_KINDS excludes $Kind"; return }
+            $h = New-Target
+            New-Item -ItemType Directory (Split-Path (Get-RoleFile $h)) | Out-Null
+            Set-Content -LiteralPath (Get-RoleFile $h) -Value 'not json' -NoNewline
+            $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Ask
+            $r.Code | Should -Be 1
+            $r.Text | Should -Match 'not a JSON object'
+            Get-Content -LiteralPath (Get-RoleFile $h) -Raw | Should -Be 'not json'
+        }
     }
 }

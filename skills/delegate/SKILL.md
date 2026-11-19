@@ -24,7 +24,10 @@ harnesses leak into each other's sessions.
 
 Read the role file at `~/.agents/roles.json` (on Windows
 `%USERPROFILE%\.agents\roles.json`). Its shape is in `roles.example.json`,
-next to this file.
+next to this file. In a clone of this skill's repository, the owner makes
+and changes it with `scripts/install.ps1 -Roles` (Windows) or
+`scripts/install.sh --roles` (Linux, macOS). Do not change it unless the
+owner asks.
 
 1. If `hostOverrides.<host>.<role>` exists, it is the role. It replaces
    `roles.<role>` whole, because an effort level belongs to one harness.
