@@ -5,6 +5,8 @@
 !/.github/
 !/.gitattributes
 !/.gitignore
+!/AGENTS.md
+!/CLAUDE.md
 !/README.md
 !/apm/
 !/archive/
