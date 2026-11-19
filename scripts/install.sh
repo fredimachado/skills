@@ -106,7 +106,7 @@ read_entry() {   # current entry as JSON (null for none), what no harness means 
     # The model goes to the harness exactly as typed; say once where each one lists its ids.
     case $hinted in *" $h "*) ;; *) hinted="$hinted$h "; say "  ($h model: $(model_hint "$h"))" ;; esac
     # A model and an effort belong to one harness: offer them only when it is unchanged.
-    cur_m= cur_e=
+    cur_m='' cur_e=''
     if [ "$h" = "$cur_h" ]; then
         cur_m=$(printf '%s' "$1" | jq -r '.model? // empty')
         cur_e=$(printf '%s' "$1" | jq -r '.effort? // empty')
