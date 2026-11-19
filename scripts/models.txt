@@ -1,0 +1,43 @@
+# Models the install questions offer for each harness, as "<harness> <model>", in menu order.
+# Each model is spelled exactly as its harness takes it. The questions also accept a model
+# that is not here, so a missing one only costs typing; add it here to offer it.
+# Cursor models carry their effort in the name, so no effort is asked for them.
+
+claude claude-fable-5-2
+claude claude-opus-5-5
+claude claude-sonnet-5-5
+claude claude-haiku-5-5
+claude claude-mythos-5-2
+
+codex gpt-6.2-astra
+codex gpt-6.2-sol
+codex gpt-6.1-sol
+codex gpt-6.1-terra
+codex gpt-6-astra
+codex gpt-6-sol
+codex gpt-6-luna
+
+cursor composer-2.5
+cursor composer-2.5-fast
+cursor cursor-grok-4.5-high
+cursor cursor-grok-4.5-high-fast
+cursor cursor-grok-4.5-medium
+cursor cursor-grok-4.5-medium-fast
+cursor cursor-grok-4.5-low
+cursor cursor-grok-4.5-low-fast
+cursor cursor-grok-4.6-xhigh
+cursor cursor-grok-4.6-xhigh-fast
+cursor cursor-grok-4.6-high
+cursor cursor-grok-4.6-high-fast
+cursor cursor-grok-4.6-medium
+cursor cursor-grok-4.6-medium-fast
+cursor cursor-grok-4.6-low
+cursor cursor-grok-4.6-low-fast
+cursor grok-4.7-xhigh
+cursor grok-4.7-xhigh-fast
+cursor grok-4.7-high
+cursor grok-4.7-high-fast
+cursor grok-4.7-medium
+cursor grok-4.7-medium-fast
+cursor grok-4.7-low
+cursor grok-4.7-low-fast

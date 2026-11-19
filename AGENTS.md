@@ -33,7 +33,8 @@
 
 - `.gitignore` is an allow-list (the repo can be cloned into `~/.agents/skills`): a new
   top-level file or folder must be added to it.
-- No model ids, tokens or account details in skills, scripts or tests; tests use
-  placeholders such as `model-a`.
+- Model ids live only in `scripts/models.txt`, the menu the install questions offer. None
+  in skills, scripts or tests: tests use placeholders such as `model-a`, or read
+  `models.txt`. No tokens or account details anywhere.
 - `install` never replaces a real folder or a link that points elsewhere; keep it that way.
 - Commit to `main` as fast-forwards, with no attribution lines.

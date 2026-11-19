@@ -20,7 +20,8 @@
 #
 # Then the role file, ~/.agents/roles.json, which tells the delegate skill which harness,
 # model and effort runs each role (needs jq). When it is missing and this runs in a
-# terminal, it offers to ask for each role and write the file. --roles asks again, with
+# terminal, it offers to ask for each role and write the file; it offers the models in
+# models.txt, next to this script, by number, and takes any other model typed. --roles asks again, with
 # the current values as defaults, and does nothing else: use it to change models later.
 # The file is written only after you confirm it, and the previous version is kept as
 # roles.json.bak. Keys the questions do not cover (such as $comment) are kept.
@@ -59,10 +60,22 @@ describe() {
 model_hint() {
     # shellcheck disable=SC2016 # the backquotes are shown, not run
     case $1 in
-        claude) echo 'an id or alias Claude Code accepts, as /model shows them; it has no list command' ;;
-        codex) echo 'a slug from `codex debug models`' ;;
-        cursor) echo 'a name from `cursor-agent --list-models` (first column); effort goes in its own question' ;;
+        claude) echo 'Claude Code shows them in /model' ;;
+        codex) echo '`codex debug models` lists them' ;;
+        cursor) echo '`cursor-agent --list-models` lists them' ;;
     esac
+}
+# The models offered per harness, from models.txt ("<harness> <model>" lines) next to this script.
+models_file="$here/models.txt"
+model_count() {
+    if [ -f "$models_file" ]; then awk -v h="$1" '$1 == h { n++ } END { print n + 0 }' "$models_file"; else echo 0; fi
+}
+model_at() { awk -v h="$1" -v i="$2" '$1 == h { n++; if (n == i) { print $2; exit } }' "$models_file"; }
+show_models() {   # three to a line, numbered
+    awk -v h="$1" '
+        function flush() { sub(/ +$/, "", line); print "  " line; line = "" }
+        $1 == h { n++; line = line sprintf("%-34s", sprintf("%4d) %s", n, $2)); if (n % 3 == 0) flush() }
+        END { if (line != "") flush() }' "$models_file"
 }
 # Questions are asked only of someone at a terminal (INSTALL_ROLES_PROMPT=1 forces them, for the tests).
 can_ask() { [ "${INSTALL_ROLES_PROMPT:-}" = 1 ] || [ -t 0 ]; }
@@ -92,7 +105,6 @@ yes_no() {   # question, default (y or n); returns 0 for yes
         *) return 1 ;;
     esac
 }
-hinted=' '
 read_entry() {   # current entry as JSON (null for none), what no harness means -> $entry ('' for none)
     cur_h=$(printf '%s' "$1" | jq -r '.harness? // empty')
     while :; do
@@ -103,21 +115,38 @@ read_entry() {   # current entry as JSON (null for none), what no harness means 
     done
     entry=
     [ -n "$h" ] || return 0
-    # The model goes to the harness exactly as typed; say once where each one lists its ids.
-    case $hinted in *" $h "*) ;; *) hinted="$hinted$h "; say "  ($h model: $(model_hint "$h"))" ;; esac
     # A model and an effort belong to one harness: offer them only when it is unchanged.
     cur_m='' cur_e=''
     if [ "$h" = "$cur_h" ]; then
         cur_m=$(printf '%s' "$1" | jq -r '.model? // empty')
         cur_e=$(printf '%s' "$1" | jq -r '.effort? // empty')
     fi
+    # Offer the listed models by number; anything else typed is taken as the model, exactly.
+    count=$(model_count "$h")
+    if [ "$count" -gt 0 ]; then
+        show_models "$h"
+        say "  Pick a number, or type another model exactly as $h takes it ($(model_hint "$h"))."
+    else
+        say "  Type the model exactly as $h takes it ($(model_hint "$h"))."
+    fi
     while :; do
         read_value model "$cur_m"
         m=$value
-        [ -n "$m" ] && break
-        say '  a model is needed: the id or alias that harness accepts.'
+        case $m in
+            '') say '  a model is needed: pick one from the list, or type it.'; continue ;;
+            *[!0-9]*) break ;;
+        esac
+        [ "$count" -gt 0 ] || break
+        if [ "$m" -ge 1 ] && [ "$m" -le "$count" ]; then
+            m=$(model_at "$h" "$m")
+            say "  -> $m"
+            break
+        fi
+        say "  there is no $m in the list: pick 1 to $count, or type the model."
     done
-    read_value 'effort (optional)' "$cur_e"
+    # Cursor models carry their effort in the name (cursor-grok-4.5-high), so none is asked.
+    value=''
+    [ "$h" = cursor ] || read_value 'effort (optional)' "$cur_e"
     entry=$(jq -nc --arg h "$h" --arg m "$m" --arg e "$value" \
         '{harness: $h, model: $m} + (if $e == "" then {} else {effort: $e} end)')
 }
@@ -138,10 +167,11 @@ role_setup() {
     fi
     say ''
     say "Roles for the delegate skill, saved in $role_file."
-    say 'For each role: the harness (claude, codex or cursor), the model exactly as that harness'
-    say 'takes it (an id, not a display name: nothing translates it), and an effort level if you'
-    say 'want one. Enter keeps the value in [brackets]; - clears it. A role with no harness is'
-    say 'unavailable: skills stop and ask instead of picking a model.'
+    say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
+    say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
+    say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
+    say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable:'
+    say 'skills stop and ask instead of picking a model.'
     new_roles='{}'
     for role in $roles; do
         say ''

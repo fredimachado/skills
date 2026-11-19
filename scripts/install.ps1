@@ -23,7 +23,8 @@ install.sh does the same on Linux and macOS without PowerShell.
 
 Then the role file, ~/.agents/roles.json, which tells the delegate skill which harness,
 model and effort runs each role. When it is missing and this runs in a terminal, it offers
-to ask for each role and write the file. -Roles asks again, with the current values as
+to ask for each role and write the file; it offers the models in models.txt, next to this
+script, by number, and takes any other model typed. -Roles asks again, with the current values as
 defaults, and does nothing else: use it to change models later. The file is written only
 after you confirm it, and the previous version is kept as roles.json.bak. Keys the
 questions do not cover (such as $comment) are kept.
@@ -52,12 +53,22 @@ $roleNames = [ordered]@{
     'council-b'     = 'second reviewer; a model from a different provider than council-a'
 }
 $harnesses = 'claude', 'codex', 'cursor'
-$modelHints = @{
-    claude = 'an id or alias Claude Code accepts, as /model shows them; it has no list command'
-    codex  = 'a slug from `codex debug models`'
-    cursor = 'a name from `cursor-agent --list-models` (first column); effort goes in its own question'
+# The models offered per harness, from models.txt ("<harness> <model>" lines) next to this script.
+$models = @{}
+$modelsFile = Join-Path $PSScriptRoot 'models.txt'
+if (Test-Path -LiteralPath $modelsFile) {
+    foreach ($line in Get-Content -LiteralPath $modelsFile) {
+        $f = @(-split $line)
+        if ($f.Count -lt 2 -or $f[0].StartsWith('#')) { continue }
+        if (-not $models.Contains($f[0])) { $models[$f[0]] = [Collections.Generic.List[string]]::new() }
+        $models[$f[0]].Add($f[1])
+    }
 }
-$hinted = @{}
+$modelHints = @{
+    claude = 'Claude Code shows them in /model'
+    codex  = '`codex debug models` lists them'
+    cursor = '`cursor-agent --list-models` lists them'
+}
 $newComment = 'Role file for the delegate skill. install.ps1 -Roles (Windows) or install.sh --roles (Linux, macOS) asks again to change it; the shape is in skills/delegate/roles.example.json.'
 
 function Say([string] $Text) { [Console]::Out.WriteLine($Text) }
@@ -93,16 +104,30 @@ function Read-Entry($Current, [string] $NoneMeans) {
         Say "  harness is claude, codex or cursor; - leaves the role $NoneMeans."
     }
     if (-not $h) { return $null }
-    # The model goes to the harness exactly as typed; say once where each one lists its ids.
-    if (-not $script:hinted.Contains($h)) { $script:hinted[$h] = 1; Say "  ($h model: $($modelHints[$h]))" }
     # A model and an effort belong to one harness: offer them only when it is unchanged.
     $same = $h -eq $curH
+    # Offer the listed models by number; anything else typed is taken as the model, exactly.
+    $list = @(if ($models.Contains($h)) { $models[$h] })
+    if ($list.Count) {
+        $cells = @(for ($i = 0; $i -lt $list.Count; $i++) { ('{0,4}) {1}' -f ($i + 1), $list[$i]).PadRight(34) })
+        for ($i = 0; $i -lt $cells.Count; $i += 3) { Say ('  ' + ($cells[$i..([Math]::Min($i + 2, $cells.Count - 1))] -join '')).TrimEnd() }
+        Say "  Pick a number, or type another model exactly as $h takes it ($($modelHints[$h]))."
+    } else {
+        Say "  Type the model exactly as $h takes it ($($modelHints[$h]))."
+    }
     while ($true) {
         $m = Read-Value 'model' $(if ($same) { "$(Get-Prop $Current 'model')" } else { '' })
+        if ($list.Count -and $m -match '^\d+$') {
+            $n = [int]$m
+            if ($n -ge 1 -and $n -le $list.Count) { $m = $list[$n - 1]; Say "  -> $m"; break }
+            Say "  there is no $m in the list: pick 1 to $($list.Count), or type the model."
+            continue
+        }
         if ($m) { break }
-        Say '  a model is needed: the id or alias that harness accepts.'
+        Say '  a model is needed: pick one from the list, or type it.'
     }
-    $e = Read-Value 'effort (optional)' $(if ($same) { "$(Get-Prop $Current 'effort')" } else { '' })
+    # Cursor models carry their effort in the name (cursor-grok-4.5-high), so none is asked.
+    $e = if ($h -eq 'cursor') { '' } else { Read-Value 'effort (optional)' $(if ($same) { "$(Get-Prop $Current 'effort')" } else { '' }) }
     $entry = [ordered]@{ harness = $h; model = $m }
     if ($e) { $entry.effort = $e }
     $entry
@@ -117,10 +142,11 @@ function Invoke-RoleSetup {
     }
     Say ''
     Say "Roles for the delegate skill, saved in $roleFile."
-    Say 'For each role: the harness (claude, codex or cursor), the model exactly as that harness'
-    Say 'takes it (an id, not a display name: nothing translates it), and an effort level if you'
-    Say 'want one. Enter keeps the value in [brackets]; - clears it. A role with no harness is'
-    Say 'unavailable: skills stop and ask instead of picking a model.'
+    Say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
+    Say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
+    Say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
+    Say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable:'
+    Say 'skills stop and ask instead of picking a model.'
     $oldRoles = Get-Prop $doc 'roles'
     $newRoles = [ordered]@{}
     foreach ($role in $roleNames.Keys) {

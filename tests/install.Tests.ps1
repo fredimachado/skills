@@ -33,6 +33,14 @@ BeforeAll {
     function script:Get-RoleFile([string] $HomeDir) { Join-Path $HomeDir '.agents/roles.json' }
     function script:Read-RoleFile([string] $HomeDir) { Get-Content -LiteralPath (Get-RoleFile $HomeDir) -Raw | ConvertFrom-Json -AsHashtable }
     $script:RolesFlag = @{ ps1 = '-Roles'; sh = '--roles' }
+    # The menu the scripts offer, read from the same file (no model ids in the tests).
+    $script:Menu = @{}
+    foreach ($line in Get-Content -LiteralPath (Join-Path $Repo 'scripts/models.txt')) {
+        $f = @(-split $line)
+        if ($f.Count -lt 2 -or $f[0].StartsWith('#')) { continue }
+        if (-not $Menu.Contains($f[0])) { $Menu[$f[0]] = [Collections.Generic.List[string]]::new() }
+        $Menu[$f[0]].Add($f[1])
+    }
     function script:Get-LinkTarget([string] $Path) {
         $item = Get-Item -LiteralPath $Path -Force
         if (-not $item.LinkType) { return $null }
@@ -168,11 +176,11 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
                 'claude', 'model-a', 'high'          # planner
                 'codex', '', 'model-b', ''           # coder-simple: the model is asked again until given
                 ''                                   # coder-complex: left unavailable
-                'bogus', 'cursor', 'model-c', ''     # reviewer: an unknown harness is asked again
-                'claude', 'model-d', 'max'           # council-a
-                'codex', 'model-e', 'high'           # council-b
+                'bogus', 'cursor', 'model-c'         # reviewer: an unknown harness is asked again; cursor asks no effort
+                'claude', '2', 'max'                 # council-a: the second listed model
+                'codex', '99', '1', 'high'           # council-b: a number off the list is asked again
                 '', 'n', 'y'                         # overrides: none for claude or codex; cursor has one
-                '', 'cursor', 'model-f', '', '', '', '', ''
+                '', 'cursor', 'model-f', '', '', '', ''
                 ''                                   # write it
             )
             $r = Invoke-Install $Kind @($t) -HomeDir $h -Answers $answers -Ask
@@ -180,6 +188,10 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             $r.Text | Should -Match 'harness is claude, codex or cursor'
             $r.Text | Should -Match 'a model is needed'
             $r.Text | Should -Match 'codex debug models'
+            $r.Text | Should -Match 'there is no 99 in the list'
+            # Piped answers are not echoed, so the menu starts on the harness question's line.
+            $r.Text | Should -Match ("\s1\) $([regex]::Escape($Menu.cursor[0]))\s+2\) $([regex]::Escape($Menu.cursor[1]))\s+3\) ")
+            ([regex]::Matches($r.Text, 'effort \(optional\)')).Count | Should -Be 4
             Get-LinkTarget (Join-Path $t 'plan') | Should -Be (Join-Path $SkillsDir 'plan')
             $doc = Read-RoleFile $h
             $doc['$comment'] | Should -Match ([regex]::Escape($RolesFlag[$Kind]))
@@ -189,8 +201,9 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             "$($doc.roles['coder-simple'].harness)/$($doc.roles['coder-simple'].model)" | Should -Be 'codex/model-b'
             $doc.roles['coder-simple'].Contains('effort') | Should -BeFalse
             "$($doc.roles.reviewer.harness)/$($doc.roles.reviewer.model)" | Should -Be 'cursor/model-c'
-            "$($doc.roles['council-a'].model)/$($doc.roles['council-a'].effort)" | Should -Be 'model-d/max'
-            "$($doc.roles['council-b'].model)/$($doc.roles['council-b'].effort)" | Should -Be 'model-e/high'
+            $doc.roles.reviewer.Contains('effort') | Should -BeFalse
+            "$($doc.roles['council-a'].model)/$($doc.roles['council-a'].effort)" | Should -Be "$($Menu.claude[1])/max"
+            "$($doc.roles['council-b'].model)/$($doc.roles['council-b'].effort)" | Should -Be "$($Menu.codex[0])/high"
             @($doc.hostOverrides.Keys) | Should -Be @('cursor')
             @($doc.hostOverrides.cursor.Keys) | Should -Be @('coder-simple')
             "$($doc.hostOverrides.cursor['coder-simple'].harness)/$($doc.hostOverrides.cursor['coder-simple'].model)" | Should -Be 'cursor/model-f'
@@ -228,11 +241,11 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
                 'codex', 'model-z', ''               # planner: a new harness offers no old model or effort
                 '', '', ''                           # coder-simple: kept
                 '', '', ''                           # coder-complex: kept
-                '', '', '-'                          # reviewer: effort cleared
+                '', ''                               # reviewer: cursor asks no effort, so the old one goes
                 '', '', ''                           # council-a: kept
                 '-'                                  # council-b: cleared
                 '', '', ''                           # overrides: none for claude or codex; cursor kept (default yes)
-                '', '', '', '', '', '', '', ''       # cursor: planner none, coder-simple kept, the rest none
+                '', '', '', '', '', '', ''           # cursor: planner none, coder-simple kept, the rest none
                 ''                                   # write it
             )
             $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers $answers -Ask

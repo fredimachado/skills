@@ -39,11 +39,13 @@ npx skills@latest add fredimachado/skills --global --skill orchestrate --skill p
 ~~~
 
 `delegate` reads a role file at `~/.agents/roles.json` that names the harness and model
-for each role. The install scripts under "Working on this repository" ask for them and
-write it; otherwise copy [roles.example.json](skills/delegate/roles.example.json) there
-and fill it in. Give each model exactly as its harness takes it (an id or alias, not a
-display name): Codex lists them with `codex debug models`, Cursor with
-`cursor-agent --list-models`, and Claude Code with `/model`. A role left empty, or a model
+for each role. The install scripts under "Working on this repository" ask for them, offer
+the models in [scripts/models.txt](scripts/models.txt) by number, and write it; otherwise
+copy [roles.example.json](skills/delegate/roles.example.json) there and fill it in. Give
+each model exactly as its harness takes it (an id or alias, not a display name): Codex
+lists them with `codex debug models`, Cursor with `cursor-agent --list-models`, and
+Claude Code with `/model`. Cursor models carry their effort in the name
+(`cursor-grok-4.5-high`), so they get no separate effort. A role left empty, or a model
 the harness refuses, is reported as unavailable, never replaced with another model.
 
 `delegate` and `babysit-pr` come with scripts: PowerShell 7 on Windows, plain `sh` with
@@ -85,8 +87,9 @@ once:
 | Install the third-party skills in `apm/apm.yml` with APM | `scripts/sync-apm.ps1` | `scripts/sync-apm.sh` |
 
 `install` never replaces a real folder or a link that points elsewhere: it reports them
-and skips them. For the role file it asks, per role, for the harness, the model and an
-optional effort (Enter keeps the current value, `-` clears it), then for any host
+and skips them. For the role file it asks, per role, for the harness, the model (a number
+from the list in `scripts/models.txt`, or any model typed) and an optional effort, except
+for Cursor (Enter keeps the current value, `-` clears it), then for any host
 overrides, shows the result and writes it only after you confirm, keeping the previous
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the
