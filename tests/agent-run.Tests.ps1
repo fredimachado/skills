@@ -87,6 +87,13 @@ BeforeAll {
 
     function script:New-OutFile { Join-Path $Root "out file $([guid]::NewGuid().ToString('N').Substring(0, 6)).txt" }
 
+    # The same folder can have two names (on macOS /var is a link to /private/var), so
+    # compare folders by their real path.
+    function script:Get-RealDir([string] $Path) {
+        if ($IsWindows) { return (Resolve-Path -LiteralPath $Path).Path }
+        (& /bin/sh -c 'cd "$1" && pwd -P' sh $Path)
+    }
+
     function script:Base([string] $Harness, [string] $Mode = 'read-only', [string] $Dir = $Repo) {
         @('-Harness', $Harness, '-Model', 'm1', '-Mode', $Mode, '-WorkDir', $Dir,
           '-PromptFile', $Prompt, '-OutFile', (New-OutFile), '-TimeoutSec', '60')
@@ -144,7 +151,7 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             Get-Content -LiteralPath $out -Raw | Should -Be 'hello from the delegate'
             if ($H -eq 'codex') { $r.Run.args | Should -Contain $Repo }
             elseif ($H -eq 'cursor') { $r.Run.args | Should -Contain $Repo }
-            else { $r.Run.cwd | Should -Be (Resolve-Path $Repo).Path }
+            else { Get-RealDir $r.Run.cwd | Should -Be (Get-RealDir $Repo) }
         }
     }
 
@@ -379,7 +386,7 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             $a[1] | Should -Be 'resume'
             $a | Should -Contain 'abc-123'
             $a | Should -Contain 'sandbox_mode=read-only'
-            $r.Run.cwd | Should -Be (Resolve-Path $Repo).Path
+            Get-RealDir $r.Run.cwd | Should -Be (Get-RealDir $Repo)
             $r.Json.sessionId | Should -Be 'abc-123'
         }
         It 'cursor resumes with --resume' {

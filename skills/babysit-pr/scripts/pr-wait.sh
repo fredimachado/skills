@@ -254,7 +254,7 @@ write_line() { # id type text
     fi
 }
 
-complete() { # code id type text [failed]
+finish() { # code id type text [failed]
     [ -n "$4" ] && write_line "$2" "$3" "$4"
     # A first run that never finished a poll has no baseline worth keeping: saving an
     # empty one would make the next run report everything that exists as new.
@@ -494,8 +494,8 @@ VIEWER=''
 # One poll. Returns 1 when gh failed (GH_* say why); exits when the watch ends.
 poll() {
     snapshot || return 1
-    [ "$SNAP" = merged ] && complete 0 final:merged merged "merged: $PR_URL"
-    [ "$SNAP" = closed ] && complete 1 final:closed closed "closed without merging: $PR_URL"
+    [ "$SNAP" = merged ] && finish 0 final:merged merged "merged: $PR_URL"
+    [ "$SNAP" = closed ] && finish 1 final:closed closed "closed without merging: $PR_URL"
     if [ -z "$VIEWER" ]; then
         gh_call "$T/user.json" api user || return 1
         VIEWER=$(jq -r '.login // ""' "$T/user.json") || bad_reply user || return 1
@@ -527,7 +527,7 @@ poll() {
     jq -c '.state' "$T/result.json" >"$T/state.json"
     PREV=$(jq -c '.fingerprint' "$T/result.json")
     _final=$(jq -r '.final // ""' "$T/result.json")
-    [ -n "$_final" ] && complete "$_final" '' '' ''
+    [ -n "$_final" ] && finish "$_final" '' '' ''
     PENDING=$(jq -r '.pending' "$T/result.json")
     return 0
 }
@@ -545,16 +545,16 @@ while :; do
         BASELINE=false
     else
         if [ "$FIRST_POLL" = true ] && [ "$GH_NOTFOUND" = 1 ]; then stop_early "cannot read $REPO#$NUMBER: $GH_MSG"; fi
-        [ "$GH_TRANSIENT" = 1 ] || complete 1 final:error error "pr-wait stopped: $GH_MSG" failed
+        [ "$GH_TRANSIENT" = 1 ] || finish 1 final:error error "pr-wait stopped: $GH_MSG" failed
         FAILURES=$((FAILURES + 1))
         log "poll failed ($FAILURES/$MAX_FAILED_POLLS): $GH_MSG"
         [ "$FAILURES" -lt "$MAX_FAILED_POLLS" ] ||
-            complete 1 final:unreachable error "pr-wait stopped: GitHub unreachable for $FAILURES polls: $GH_MSG" failed
+            finish 1 final:unreachable error "pr-wait stopped: GitHub unreachable for $FAILURES polls: $GH_MSG" failed
     fi
     FIRST_POLL=false
     _elapsed=$(($(date +%s) - START))
     if [ "$ONCE" = true ] || { [ "$MAX_WAIT" -gt 0 ] && [ $((_elapsed + INTERVAL)) -gt "$MAX_WAIT" ]; }; then
-        complete 3 final:pending pending "$PENDING after ${_elapsed}s; run pr-wait again" "$( [ "$BASELINE" = true ] && echo failed )"
+        finish 3 final:pending pending "$PENDING after ${_elapsed}s; run pr-wait again" "$( [ "$BASELINE" = true ] && echo failed )"
     fi
     sleep "$INTERVAL"
 done

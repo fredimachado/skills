@@ -41,7 +41,7 @@ json_fallback() {   # a JSON string without jq: drop control characters, escape 
     printf '"%s"' "$(printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g')"
 }
 
-complete() {   # status [error] [exit code]
+finish() {   # status [error] [exit code]
     r_status=$1
     err=${2-}
     code=${3-}
@@ -64,7 +64,7 @@ complete() {   # status [error] [exit code]
     exit "$code"
 }
 
-fail_arguments() { complete failed "$1" 2; }
+fail_arguments() { finish failed "$1" 2; }
 
 # ---------------------------------------------------------------- arguments
 
@@ -101,7 +101,7 @@ while [ "$#" -gt 0 ]; do
 done
 r_harness=$Harness r_model=$Model r_outfile=$OutFile
 
-command -v jq >/dev/null 2>&1 || complete failed "jq is required on Linux and macOS and was not found on PATH."
+command -v jq >/dev/null 2>&1 || finish failed "jq is required on Linux and macOS and was not found on PATH."
 
 # ---------------------------------------------------------------- processes
 
@@ -111,7 +111,7 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
-tmp=$(mktemp -d "${TMPDIR:-/tmp}/agent-run.XXXXXX") || complete failed "Could not create a temporary directory."
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/agent-run.XXXXXX") || finish failed "Could not create a temporary directory."
 
 tree_pids=''
 collect_tree() {   # stop a process so it cannot fork, then do the same for its children
@@ -263,7 +263,7 @@ build_args() {
             run_stdin=$PromptFile ;;
         cursor)
             cursor_model=$Model
-            [ -n "$Effort" ] && cursor_model="$Model[effort=$Effort]"
+            [ -n "$Effort" ] && cursor_model="${Model}[effort=${Effort}]"
             set -- -p --output-format json --trust --model "$cursor_model" --workspace "$WorkDir"
             [ -n "$ResumeId" ] && set -- "$@" --resume "$ResumeId"
             set -f; IFS=$nl
@@ -423,7 +423,7 @@ fi
 # ---------------------------------------------------------------- arguments
 
 if [ -n "${AGENT_SKILLS_DELEGATE-}" ]; then
-    complete failed "$GUARD is set: this process is already a delegate and must not start another one."
+    finish failed "$GUARD is set: this process is already a delegate and must not start another one."
 fi
 case $Mode in read-only|write) ;; *) fail_arguments "-Mode must be read-only or write, not '$Mode'." ;; esac
 if [ -z "$WorkDir" ] || [ ! -d "$WorkDir" ]; then fail_arguments "-WorkDir '$WorkDir' is not a directory."; fi
@@ -463,8 +463,8 @@ fi
 
 if [ -n "$Role" ]; then
     [ -n "$HostHarness" ] || fail_arguments '-Role needs -HostHarness, to apply hostOverrides.'
-    [ -f "$RoleFile" ] || complete unavailable "Role file '$RoleFile' not found."
-    jq -e 'type == "object"' "$RoleFile" >/dev/null 2>&1 || complete unavailable "Role file '$RoleFile' is not valid JSON."
+    [ -f "$RoleFile" ] || finish unavailable "Role file '$RoleFile' not found."
+    jq -e 'type == "object"' "$RoleFile" >/dev/null 2>&1 || finish unavailable "Role file '$RoleFile' is not valid JSON."
     # A host override replaces the whole role: effort levels belong to one harness.
     role_field() {
         jq -r --arg host "$HostHarness" --arg role "$Role" --arg f "$1" '
@@ -478,7 +478,7 @@ if [ -n "$Role" ]; then
     [ -n "$Effort" ] || Effort=$(role_field effort)
     r_harness=$Harness r_model=$Model
     if [ -z "$Harness" ] || [ -z "$Model" ]; then
-        complete unavailable "Role '$Role' on host '$HostHarness' has no harness and model in '$RoleFile'."
+        finish unavailable "Role '$Role' on host '$HostHarness' has no harness and model in '$RoleFile'."
     fi
 fi
 case $Harness in
@@ -502,28 +502,28 @@ if [ "$Mode" = write ]; then
     # Write mode runs only in a linked worktree, never in a main checkout.
     # Resolve the paths ourselves: --path-format=absolute needs git 2.31 or later.
     not_worktree="Write mode needs a linked git worktree (git worktree add); '$WorkDir' is not one."
-    git -C "$WorkDir" rev-parse --git-dir --git-common-dir >"$tmp/gitdirs" 2>/dev/null || complete failed "$not_worktree"
+    git -C "$WorkDir" rev-parse --git-dir --git-common-dir >"$tmp/gitdirs" 2>/dev/null || finish failed "$not_worktree"
     git_dirs=''
     while IFS= read -r g; do
         case $g in /*) ;; *) g="$WorkDir/$g" ;; esac
-        g=$(cd -- "$g" 2>/dev/null && pwd -P) || complete failed "$not_worktree"
+        g=$(cd -- "$g" 2>/dev/null && pwd -P) || finish failed "$not_worktree"
         git_dirs="$git_dirs$g$nl"
     done <"$tmp/gitdirs"
     git_dir=$(printf '%s' "$git_dirs" | sed -n 1p)
     common_dir=$(printf '%s' "$git_dirs" | sed -n 2p)
     if [ -z "$git_dir" ] || [ -z "$common_dir" ] || [ "$git_dir" = "$common_dir" ]; then
-        complete failed "$not_worktree"
+        finish failed "$not_worktree"
     fi
 fi
 
 # ---------------------------------------------------------------- run
 
 cmd=$(adapter_command "$Harness")
-launcher=$(resolve_launcher "$cmd") || complete unavailable "$cmd is not installed (not found on PATH)."
+launcher=$(resolve_launcher "$cmd") || finish unavailable "$cmd is not installed (not found on PATH)."
 signed_in "$Harness" "$launcher" ||
-    complete unavailable "$cmd is not signed in. Sign in to it yourself; this script never handles credentials."
+    finish unavailable "$cmd is not signed in. Sign in to it yourself; this script never handles credentials."
 if offered_models "$Harness" "$launcher" >"$tmp/models"; then
-    tr -d '\r' <"$tmp/models" | grep -qixF -- "$Model" || complete unavailable "$cmd does not offer model '$Model'."
+    tr -d '\r' <"$tmp/models" | grep -qixF -- "$Model" || finish unavailable "$cmd does not offer model '$Model'."
 fi
 
 schema='' schema_file=''
@@ -546,7 +546,7 @@ out_dir=$(dirname -- "$OutFile")
 mkdir -p -- "$out_dir" 2>/dev/null
 { printf '# stdout\n'; cat "$tmp/stdout"; printf '\n# stderr\n'; cat "$tmp/stderr"; printf '\n'; } >"$OutFile.log"
 
-[ "$run_timed_out" = 1 ] && complete timeout "No result after $TimeoutSec seconds; the process tree was killed."
+[ "$run_timed_out" = 1 ] && finish timeout "No result after $TimeoutSec seconds; the process tree was killed."
 
 parse_run
 [ -n "$p_model" ] && r_model=$p_model
@@ -573,25 +573,25 @@ if [ "$run_code" != 0 ]; then
     fi
     why=$(jq -nr --arg w "$why" 'if ($w | length) > 600 then $w[:600] + " ..." else $w end')
     if cat "$tmp/stderr" "$tmp/stdout" | grep -qiE 'cannot use this model|model[^[:alnum:]_](.*[^[:alnum:]_])?(not (found|available|supported)|does not exist|invalid|unknown)'; then
-        complete unavailable "$cmd rejected model '$Model': $why"
+        finish unavailable "$cmd rejected model '$Model': $why"
     fi
-    complete failed "$cmd exited with $run_code: $why"
+    finish failed "$cmd exited with $run_code: $why"
 fi
-[ -n "$p_invalid" ] && complete invalid-output "$p_invalid"
-[ -n "$p_error" ] && complete failed "$p_error"
+[ -n "$p_invalid" ] && finish invalid-output "$p_invalid"
+[ -n "$p_error" ] && finish failed "$p_error"
 
 if [ -n "$p_model" ] && ! printf '%s\n' "$p_model" | grep -qiF -- "$Model"; then
-    complete unavailable "Asked for model '$Model' but $cmd ran '$p_model'. Not substituting."
+    finish unavailable "Asked for model '$Model' but $cmd ran '$p_model'. Not substituting."
 fi
 
 if [ "$Mode" = read-only ] && [ -n "$before" ] && [ "$(git_state "$WorkDir")" != "$before" ]; then
-    complete failed "The read-only delegate changed '$WorkDir'. Check git status there before trusting it."
+    finish failed "The read-only delegate changed '$WorkDir'. Check git status there before trusting it."
 fi
 
 if [ -n "$SchemaFile" ]; then
     if [ ! -s "$tmp/text" ] || ! jq -se --slurpfile schema "$schema_file" "$SCHEMA_JQ" "$tmp/text" >/dev/null 2>&1; then
-        complete invalid-output 'The result does not validate against -SchemaFile.'
+        finish invalid-output 'The result does not validate against -SchemaFile.'
     fi
 fi
 
-complete ok
+finish ok
