@@ -122,7 +122,10 @@ brief). This skill adds only the lines above.
   work): continue it by its agent id as `hosts.md` says, so it keeps its
   context; on the CLI route pass `-ResumeId <sessionId>` with the follow-up
   as the brief. Only when it can no longer be reached, start a new one with
-  the original brief, the current state and the follow-up.
+  the original brief, the current state and the follow-up. Tell the new one
+  that the first delegate's report is context, not proof: it reads the code
+  and the branch head itself, and it does not keep an approach only because
+  another agent built it.
 - **Failure and timeout:** retry once. If the retry also fails or times out,
   report the result as incomplete with what came back. A timeout, an error or
   a missing reply is never an approval and never a finished task, and it
