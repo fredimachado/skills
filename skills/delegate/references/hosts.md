@@ -74,6 +74,11 @@ same parameters; it needs `jq`. The delegate CLI needs network access and writes
 
 ## Ask the owner a question
 
+On every host the question carries its own context: what blocks you, the link
+to the pull request or the task file, and the options with your
+recommendation first. The owner may read it long after the transcript has
+scrolled away.
+
 | Host | How |
 |---|---|
 | Claude Code | `AskUserQuestion`. |

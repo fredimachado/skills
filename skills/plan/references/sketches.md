@@ -52,6 +52,11 @@ and what the user would observe on success. Look for what exists first: a
 project verification skill (often `verify-<app>`), an end-to-end suite, a
 driver or harness in the repository, a documented way to launch the app.
 
+For a fix, the first scenario is the reproduction: the user actions that show
+the failure today, and what the user sees. It runs twice, before any code
+changes and after the fix, and the second run shows the failure gone. A test
+that fails without the fix does not replace it.
+
 Where nothing can drive the behavior, plan the means as its own early slice,
 with sketches like any other: the harness or driver, how the app is launched
 in a controllable state, and one scenario that proves the harness works.

@@ -21,6 +21,7 @@ You are its only writer. Write each entry when it happens, not at the end.
 
 ## Verification plan
 - <behavior> — driven with <driver/harness>: <user actions> → <what the user should observe>
+- Reproduction (fixes only): <user actions> → failed at `<base SHA>`: <what was seen>
 - Harness to build: <what, as task Tn> (or "none needed")
 - Cannot be verified by an agent: <what and why> (or "nothing")
 
@@ -63,6 +64,7 @@ back in a later round keeps its id.
 - <build/test command> → <result>
 - New tests fail without the change: <how checked> → <result>
 - <scenario driven in the real app> → <what was observed>
+- Reproduction run again at `<head SHA>` → <what was observed>
 - Not verified: <what and why>
 
 ## Last verified state
