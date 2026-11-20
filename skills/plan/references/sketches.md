@@ -65,3 +65,6 @@ Prefer a reusable harness in the repository over a one-off script.
 Some things an agent cannot drive: a production-only service, physical
 hardware, an account the session must not use. Name the gap and the reason;
 the user checks that part.
+
+The real application does not mean the user's real data. Launch it with a
+temporary config, profile and data folder, and say so in the plan.

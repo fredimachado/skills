@@ -102,6 +102,7 @@ Separate before serializing shared state:
 - Reproduce it.
 - Fix the cause.
 - A guard that only hides the crash is not a fix.
+- A test that fails only sometimes is a bug until shown otherwise. Find the cause; do not rerun it until it passes, and do not add a sleep.
 
 **Sequence work into verifiable units**
 
@@ -112,12 +113,18 @@ Separate before serializing shared state:
 
 - The test calls the code the way its user does and checks the result that user would see.
 - If the test would still pass when every function returned nothing, throw it out.
+- The test waits for the event, never the clock: no sleep, no schedule on the real clock, no deadline a loaded CI runner will miss.
+- The test never reads or writes the user's real config, home folder or services. Give it a temporary one.
 
 **Refactoring**
 
 - Pin what the code does.
 - Change the structure.
 - Prove the behavior did not change.
+
+**Text a user sees**
+
+- When you change a message, a flag or a heading, search the repository for the old text. Docs, tests and examples repeat it.
 
 ### Practice
 
