@@ -36,5 +36,9 @@
 - Model ids live only in `scripts/models.txt`, the menu the install questions offer. None
   in skills, scripts or tests: tests use placeholders such as `model-a`, or read
   `models.txt`. No tokens or account details anywhere.
+- A skill file names another file by a path that exists, and a section of it by words
+  from its heading or bold lead-in, written as `` `file or skill`, "words" ``.
+  `tests/skill-text.Tests.ps1` checks both, and that `README.md` lists every skill. Without
+  Pester, `pwsh -NoProfile -File tests/skill-text.ps1` prints the problems.
 - `install` never replaces a real folder or a link that points elsewhere; keep it that way.
 - Commit to `main` as fast-forwards, with no attribution lines.

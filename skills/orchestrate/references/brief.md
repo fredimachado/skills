@@ -20,11 +20,18 @@ Read and follow <absolute path to coding-standards/SKILL.md>. They are required.
 ## Scope
 - Files to create/change: <paths>
 - Out of scope, do not touch: <paths / areas>
+- A bug next door, a stale comment or a tempting refactor goes in your
+  report, not in your diff.
+- Before you add a helper, a type or a fixture, look for one that already
+  does the job. Read one neighbouring file that does something similar, and
+  match its naming, error handling and test layout.
 
 ## Where to work
 <absolute repository or worktree path>, branch `<branch>`.
 Commit your work to this branch in small commits. Each message states why,
-what changed, and how you proved it. Never push.
+what changed, and how you proved it. Subjects follow the repository's style:
+<what the last ten subjects on the default branch show: a prefix such as
+`fix(scope):`, or a plain imperative>. Never push.
 
 ## Code sketches
 <see below>
@@ -51,8 +58,8 @@ A deviation that changes a data shape, a public signature, or the behavior descr
 ## Report back
 Summary · commit SHAs · files changed · tests run and their results · scenarios driven in
 the real application and what you observed · anything you could not verify and why ·
-deviations from the sketch · any TDD escape with its concrete reason · open questions ·
-your action log.
+deviations from the sketch · any TDD escape with its concrete reason · problems you
+noticed and left alone · open questions · your action log.
 ````
 
 ## Code sketches

@@ -126,6 +126,11 @@ Separate before serializing shared state:
 
 - When you change a message, a flag or a heading, search the repository for the old text. Docs, tests and examples repeat it.
 
+**Comments**
+
+- A comment says what the code cannot: an invariant, a contract with another file, why the obvious way is wrong here, a workaround with its link.
+- Do not narrate the change ("now handles", "fixed", "added for") or restate the line. The commit message says what changed.
+
 ### Practice
 
 **Keep a log**

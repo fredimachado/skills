@@ -124,11 +124,13 @@ for Cursor (Enter keeps the current value, `-` clears it), then for any host
 overrides, shows the result and writes it only after you confirm, keeping the previous
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the
-`.sh` scripts on Linux and macOS.
+`.sh` scripts on Linux and macOS. `tests/skill-text.Tests.ps1` checks, on all three, that
+the skills name only files and sections that exist and that this README lists every skill.
 
 ## Credits
 
 `modernize-pr`, and several rules in the review and pull request skills, come from
 [tstack](https://github.com/t3dotgg/tstack) (MIT). The review of a plan against the
-code, the bar a reviewer's finding must meet, and the baseline for failures follow
-[graft](https://github.com/pleb/graft) (MIT).
+code, the bar a reviewer's finding must meet, the baseline for failures, and several rules
+for coder briefs and pull request descriptions follow [graft](https://github.com/pleb/graft)
+(MIT).

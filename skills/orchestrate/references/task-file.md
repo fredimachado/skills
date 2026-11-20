@@ -24,6 +24,7 @@ You are its only writer. Write each entry when it happens, not at the end.
 - **Where:** <branch / worktree path(s)>, base `<base branch>` at `<base SHA>`
 - **Plan:** <absolute path of the plan file, or "inline below">
 - **Started:** <date>
+- **Issues:** Resolves #<n> (the owner said this work fixes it) | Related #<n> | none
 - **PR:** <link, once opened>
 
 ## Skills in use
@@ -36,6 +37,7 @@ You are its only writer. Write each entry when it happens, not at the end.
 ## Verification plan
 - <behavior> — driven with <driver/harness>: <user actions> → <what the user should observe>
 - Reproduction (fixes only): <user actions> → failed at `<base SHA>`: <what was seen>
+- Before shots (visible changes only): <image paths, taken at `<base SHA>`> (or "none")
 - Harness to build: <what, as task Tn> (or "none needed")
 - Cannot be verified by an agent: <what and why> (or "nothing")
 
@@ -80,9 +82,10 @@ back in a later round keeps its id.
 
 ## Deferred
 - F2 (T1) — <what>, why deferred, suggested follow-up (separate PR / issue)
+- Noticed by the T1 coder, left alone — <what>, suggested follow-up
 
 ## Decisions
-- <date/time> — <decision> — <why>
+- <date/time> — <decision> — <why> — decided by: owner | default | orchestrator
 
 ## Verification
 - Verified at `<head SHA>`, in a clean checkout or worktree at that commit
@@ -100,5 +103,7 @@ what is pushed, open findings by id>
 Tick a task only when its review is approved and its behavior has been seen
 working in the driven application. Mark a finding fixed only after you have
 re-checked the fix yourself. Record under Decisions: where the work happens,
-the role for anything not obvious, parallelization, every deviation from the
-plan you accepted, every deferral, every cap reached, and any escalation.
+the role for anything not obvious, parallelization, every open decision from
+the plan, every deviation from the plan you accepted, every deferral, every
+cap reached, and any escalation. Say who decided each: the owner, a
+conventional default, or you.

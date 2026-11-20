@@ -115,6 +115,10 @@ For a fix, run the reproduction from the verification plan now, at the base,
 and record what you saw. If you cannot make it fail, you do not know yet what
 to fix: tell the user before any coder starts.
 
+For a change the user will see, capture the screens it will change now, as
+they are, and keep the images outside the repository, next to the task file.
+The pull request can then show before and after.
+
 ### 4. Delegate
 
 Choose the role by the complexity of the task as briefed:
@@ -203,6 +207,8 @@ here: it does not wait for reviews or bots.
 Paste the task file's full contents in your final message with the PR link; a
 temp path may not open later. Put each behavior not verified by driving the
 application on its own line outside the paste, with what the user must check.
+List there too each decision you took without the owner (`default` or
+`orchestrator` under Decisions), so they can overturn it.
 
 ## Stop means stop
 
