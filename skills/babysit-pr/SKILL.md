@@ -20,6 +20,20 @@ Check at the point of use: `gh` exists and `gh auth status` passes; on Windows
 and stop; never sign in for the user.
 Find the PR (number or URL) and its repository.
 
+**Is the PR set to merge without the owner?** Check now, and again before
+every push:
+
+```
+gh api repos/<owner>/<repo>/pulls/<n> --jq .auto_merge
+gh api graphql -f query='{repository(owner:"<owner>",name:"<repo>"){pullRequest(number:<n>){mergeQueueEntry{position}}}}'
+```
+
+Both print `null` when the PR merges only by hand. If auto-merge is on or the
+PR is in a merge queue, a push that turns the checks green merges it, and
+merging is the owner's. Do not push: tell the owner and ask. Turn auto-merge
+off (`gh pr merge <n> --disable-auto`) only on their say, and put it in the
+report.
+
 ## Waiting: one watcher, never your own loop
 
 Run the watcher from this skill's directory, by absolute path. Both scripts take
@@ -51,6 +65,8 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
   `-MaxWaitSec` under the host's command time limit, and run it again on exit 3.
 - **Never write another polling or sleep loop**, and never run two watchers on
   one PR. If it says another pid already watches, do not start a second one.
+  Stop that pid only when its events cannot reach you, because the session
+  that started it ended; then start yours.
 - State and the lock live in a per-user folder (see the script header). On
   a sandboxed host that cannot write there (Codex `workspace-write`), set
   `PR_WAIT_STATE_DIR` to a writable folder and keep using the same one, or a
@@ -58,8 +74,11 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
 - Run it again after every push, after you handle an exit 1, and after a
   resume. It remembers what it reported, so nothing that arrived in between is
   lost; its first run on a PR only records what already exists.
-- When an event needs no action, end your turn without a message. Never post
-  or say "still waiting".
+- When an event needs no action, say nothing. Never post or say "still
+  waiting". End your turn only where the host wakes the session on the
+  watcher's next line or exit. On bounded watches nothing wakes you: ending
+  the turn ends the watch, and nobody prompts you again. Stay in the turn and
+  run the watcher again until it exits 0 or 1.
 
 ## Treating what arrives
 
@@ -83,6 +102,11 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
 - A commit after the reviewed head that changes behavior needs a focused
   review of that delta before it is pushed (`review-loop`); comments,
   documents and formatting do not.
+- A rebase or a conflict fix rewrites commits that were already reviewed.
+  Compare the series before and after:
+  `git range-diff <old base>..<old head> <new base>..<new head>`. A change in
+  behavior there is such a delta and gets its review. With none, run the
+  checks again and push.
 - **One push per cycle**, with the fixes batched: every push reruns CI and the
   bots.
 
@@ -90,11 +114,32 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
 |---|---|---|
 | Fix-and-push cycles on one PR | 3 | Stop. Report the open items. |
 
+## When the base branch moves
+
+The watcher reports three things about the base. Waiting fixes none of them.
+
+- **Behind** (`merge state is BEHIND`): bring the base in. Merge it into the
+  PR branch, or rebase when the owner allowed one. Merging the base into the
+  branch is not merging the PR.
+- **Conflicts** (`merge state is DIRTY`): resolving them is code, so a coder
+  does it (`delegate`), and the result gets the range-diff check above.
+- **The base moved and touches this PR's files**: a green run from before
+  those commits says nothing about the two changes together. Bring the base
+  in and wait for green on the new head before you report ready.
+
+Read what landed on the base before you bring it in. If another change
+already solved the same problem, or replaced the code this PR changes, stop
+watching and tell the owner. Never close the PR without their say. Otherwise
+put the update in the same push as the cycle's fixes.
+
 ## Never
 
 - Merge, enable auto-merge, or bypass branch protection.
-- Force-push, except with `--force-with-lease`, to the PR's own branch, after
-  a rebase the owner allowed.
+- Force-push, except to the PR's own branch after a rebase the owner allowed,
+  and then only as
+  `git push --force-with-lease=<branch>:<head SHA read before the rebase>`. A
+  bare `--force-with-lease` trusts the local remote-tracking ref, which any
+  fetch moves. If the lease fails, someone else pushed: fetch and look again.
 
 ## Handing off
 

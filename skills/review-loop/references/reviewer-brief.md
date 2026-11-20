@@ -24,6 +24,8 @@ Plan: <absolute path to the plan file and section, or "none">
 ## Checks already run (by the caller, not claims)
 <command> → <result>, one per line: build, tests, linters, new tests failing
 without the change, scenarios driven in the real application
+<a check that fails the same way at the base: add `(pre-existing)`; a check
+the repository does not have: `<check>: missing`>
 
 ## Standards and criteria
 Read <absolute path to coding-standards/SKILL.md> and

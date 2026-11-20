@@ -28,6 +28,11 @@ cannot find:
 - **reviewer roles**: one (`reviewer` by default) or two (from `council`)
 - **round budget**: default 3 per slice
 
+Do not start a round on code this change is known to break: get those
+failures fixed first, so the round is not spent on them. A check that fails
+the same way at the base is pre-existing, and a check that does not exist is
+missing. Say which is which in the brief.
+
 One diff command for every round:
 `git diff <base SHA>..<head SHA> -- <paths>`. Write it down; do not change it
 between rounds except to move the head.

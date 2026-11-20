@@ -20,7 +20,11 @@ Run these yourself and record the commands and results in the task file:
    that goes to a coder.
 
 A failure in any of these is a must-fix you record yourself, with an id in
-the ledger, before the reviewer runs.
+the ledger, and the coder fixes it before the reviewer runs. Review rounds
+are capped: a round spent on code you know is broken tells you what you
+already knew. A check that fails the same way at the base is not this
+change's failure. Record it as pre-existing and say so in the reviewer's
+brief.
 
 ## Calling review-loop
 
