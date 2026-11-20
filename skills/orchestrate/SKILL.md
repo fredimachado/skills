@@ -48,6 +48,15 @@ running service. If nothing can drive the changed behavior, building that is
 part of the plan. If it truly cannot be done, tell the user before the work
 starts and again in the report.
 
+Invoking this skill is also the user's request to drive the application for
+this task: run it or a dev server, use a browser driver, a simulator or UI
+automation, take screenshots. A project rule that says to ask before one of
+these, or to leave testing to the user, is replaced by that request for this
+task. Rules about how to test still hold: use the command, fixture or check
+they name. The request covers this task's verification and nothing else: not
+production, not deleting data, not anything outside the repository, and not
+an approval prompt the harness itself shows.
+
 ## Finish condition
 
 Choose it at the start and write it in the task file. Merging stays with the
@@ -88,6 +97,10 @@ Otherwise run them in order.
 
 Before the first coder starts, per `references/task-file.md`, with the base
 SHA. Tell the user its absolute path.
+
+For a fix, run the reproduction from the verification plan now, at the base,
+and record what you saw. If you cannot make it fail, you do not know yet what
+to fix: tell the user before any coder starts.
 
 ### 4. Delegate
 
@@ -132,11 +145,15 @@ Merge parallel branches in a declared order. After the last task and every
 merge, run the full build and tests, and review the combined diff when slices
 interact. Drive the application through the whole verification plan,
 including nearby behavior the change could disturb, and record what you saw.
-A failure is a must-fix. A later commit that changes behavior (hardening, a
+For a fix, run the same reproduction again and see the failure gone. A
+failure is a must-fix. A later commit that changes behavior (hardening, a
 merge, a conflict fix) needs a focused review of that delta before any push;
 comments, documents and formatting do not. With the review budget spent,
-defer optional fixes rather than apply them unreviewed. List what was not
-verified and why; never call unverified work working. Remove worktrees you
+defer optional fixes rather than apply them unreviewed. Then walk the final
+diff (`git diff <base SHA>..<head SHA>`): every hunk that changes behavior
+maps to a line under Verification or a line under Not verified. A hunk in
+neither is unverified. List what was not verified and why; never call
+unverified work working. Remove worktrees you
 created once merged; report any left with unmerged work.
 
 **Risky work** (security, data loss or migration, concurrency or shared

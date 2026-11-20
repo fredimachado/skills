@@ -75,7 +75,8 @@ task file links it there.
      the change
    - invariants with one test each (stateful or migration work)
    - a `path:line` in the existing code to imitate
-   - how the behavior will be seen working in the real application
+   - how the behavior will be seen working in the real application; for a
+     fix, the reproduction that shows the failure today
    - for migrations, compatibility and recovery at each step
 5. Slice order, dependencies, and which slices could run in parallel.
 6. Risks, open decisions that could change the plan, and what is out of
