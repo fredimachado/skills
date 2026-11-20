@@ -189,9 +189,9 @@ adapter_help() {
     case $1 in
         claude) echo '--help|-p --model --effort --permission-mode --tools --allowedTools --output-format --json-schema --resume --add-dir' ;;
         codex)
-            echo 'exec --help|-m -s -C --json -o --output-schema -c resume'
-            echo 'exec resume --help|-m --json -o --output-schema -c' ;;
-        cursor) echo '--help|-p --model --mode -f --trust --workspace --output-format --resume --list-models --add-dir' ;;
+            echo 'exec --help|-m -s -C --json -o --output-schema -c resume --dangerously-bypass-approvals-and-sandbox'
+            echo 'exec resume --help|-m --json -o --output-schema -c --dangerously-bypass-approvals-and-sandbox' ;;
+        cursor) echo '--help|-p --model --mode -f --sandbox --trust --workspace --output-format --resume --list-models --add-dir' ;;
     esac
 }
 
@@ -242,23 +242,31 @@ build_args() {
             for d in $read_dirs; do set -- "$@" "$d"; done
             unset IFS; set +f
             if [ "$Mode" = write ]; then
-                set -- "$@" --permission-mode auto
+                # Write mode is full access on every CLI: edits, git, the network and Docker.
+                set -- "$@" --permission-mode bypassPermissions
             else
                 set -- "$@" --permission-mode dontAsk --tools "$CLAUDE_READ_ONLY_TOOLS" --allowedTools \
                     'Bash(git diff:*)' 'Bash(git log:*)' 'Bash(git show:*)' 'Bash(git status:*)' 'Bash(git rev-parse:*)'
             fi
             run_stdin=$PromptFile ;;
         codex)
-            if [ "$Mode" = write ]; then sandbox=workspace-write; else sandbox=read-only; fi
             last_message="$tmp/last-message.txt"
             set -- --json -o "$last_message" -m "$Model"
             [ -n "$Effort" ] && set -- "$@" -c "model_reasoning_effort=$Effort"
             [ -n "$schema_file" ] && set -- "$@" --output-schema "$schema_file"
-            if [ -n "$ResumeId" ]; then
-                # exec resume has no -s or -C: set the sandbox by config and run in the work directory.
-                set -- exec resume "$@" -c "sandbox_mode=$sandbox" "$ResumeId" -
+            # Write mode is full access. exec resume has no -s: set the read-only sandbox by config there.
+            if [ "$Mode" = write ]; then
+                set -- "$@" --dangerously-bypass-approvals-and-sandbox
+            elif [ -n "$ResumeId" ]; then
+                set -- "$@" -c sandbox_mode=read-only
             else
-                set -- exec "$@" -s "$sandbox" -C "$WorkDir" -
+                set -- "$@" -s read-only
+            fi
+            if [ -n "$ResumeId" ]; then
+                # exec resume has no -C: it runs in the work directory.
+                set -- exec resume "$@" "$ResumeId" -
+            else
+                set -- exec "$@" -C "$WorkDir" -
             fi
             run_stdin=$PromptFile ;;
         cursor)
@@ -269,7 +277,7 @@ build_args() {
             set -f; IFS=$nl
             for d in $read_dirs; do set -- "$@" --add-dir "$d"; done
             unset IFS; set +f
-            if [ "$Mode" = write ]; then set -- "$@" -f; else set -- "$@" --mode plan; fi
+            if [ "$Mode" = write ]; then set -- "$@" -f --sandbox disabled; else set -- "$@" --mode plan; fi
             run_stdin=$PromptFile
             if [ -n "$schema" ]; then
                 # Cursor has no schema flag: ask for the shape in the brief and validate afterwards.

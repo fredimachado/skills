@@ -44,6 +44,11 @@ A failed run is retried once. A timeout or a missing reply is never read as "fin
 "approved". A helper that writes code commits to its branch and never pushes. On the
 command-line route it runs only in a separate worktree, never in your main checkout.
 
+On that route a helper that may write runs with full access: its tool asks for no
+approval and uses no sandbox. It needs that to commit, to download packages and to use
+Docker. The worktree keeps its edits apart from yours, but nothing stops it from reaching
+the rest of your machine. Only its brief does. Planners and reviewers stay read-only.
+
 ## How it connects
 
 Almost every skill in the top two rows of the [overview](../README.md) goes through

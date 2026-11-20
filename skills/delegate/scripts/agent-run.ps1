@@ -143,7 +143,8 @@ $Adapters = @{
             # Claude reads only inside its working directories: add the ones the brief points to.
             $a += @('--add-dir') + $C.ReadDirs
             if ($C.Mode -eq 'write') {
-                $a += '--permission-mode', 'auto'
+                # Write mode is full access on every CLI: edits, git, the network and Docker.
+                $a += '--permission-mode', 'bypassPermissions'
             } else {
                 $a += '--permission-mode', 'dontAsk', '--tools', $ClaudeReadOnlyTools, '--allowedTools'
                 $a += $ClaudeReadOnlyCommands
@@ -176,8 +177,10 @@ $Adapters = @{
     codex = @{
         Command = 'codex'
         Help = @(
-            @{ Args = @('exec', '--help'); Flags = @('-m', '-s', '-C', '--json', '-o', '--output-schema', '-c', 'resume') },
-            @{ Args = @('exec', 'resume', '--help'); Flags = @('-m', '--json', '-o', '--output-schema', '-c') })
+            @{ Args = @('exec', '--help'); Flags = @('-m', '-s', '-C', '--json', '-o', '--output-schema', '-c', 'resume',
+                    '--dangerously-bypass-approvals-and-sandbox') },
+            @{ Args = @('exec', 'resume', '--help'); Flags = @('-m', '--json', '-o', '--output-schema', '-c',
+                    '--dangerously-bypass-approvals-and-sandbox') })
         SignedIn = {
             param($L)
             $r = Invoke-Launcher $L @('login', 'status') $null '' 60
@@ -193,16 +196,19 @@ $Adapters = @{
         }
         Build = {
             param($C)
-            $sandbox = if ($C.Mode -eq 'write') { 'workspace-write' } else { 'read-only' }
+            # Write mode is full access. exec resume has no -s: set the read-only sandbox by config there.
+            $access = if ($C.Mode -eq 'write') { @('--dangerously-bypass-approvals-and-sandbox') }
+                      elseif ($C.ResumeId) { @('-c', 'sandbox_mode=read-only') }
+                      else { @('-s', 'read-only') }
             $C.LastMessage = Join-Path ([IO.Path]::GetTempPath()) "agent-run-$([guid]::NewGuid().ToString('N')).txt"
             $common = @('--json', '-o', $C.LastMessage, '-m', $C.Model)
             if ($C.Effort) { $common += '-c', "model_reasoning_effort=$($C.Effort)" }
             if ($C.SchemaFile) { $common += '--output-schema', $C.SchemaFile }
             if ($C.ResumeId) {
-                # exec resume has no -s or -C: set the sandbox by config and run in the work directory.
-                $a = @('exec', 'resume') + $common + @('-c', "sandbox_mode=$sandbox", $C.ResumeId, '-')
+                # exec resume has no -C: it runs in the work directory.
+                $a = @('exec', 'resume') + $common + $access + @($C.ResumeId, '-')
             } else {
-                $a = @('exec') + $common + @('-s', $sandbox, '-C', $C.WorkDir, '-')
+                $a = @('exec') + $common + $access + @('-C', $C.WorkDir, '-')
             }
             @{ Args = $a; Cwd = $C.WorkDir; Stdin = $C.Prompt }
         }
@@ -229,7 +235,7 @@ $Adapters = @{
 
     cursor = @{
         Command = 'cursor-agent'
-        Help = @(@{ Args = @('--help'); Flags = @('-p', '--model', '--mode', '-f', '--trust', '--workspace',
+        Help = @(@{ Args = @('--help'); Flags = @('-p', '--model', '--mode', '-f', '--sandbox', '--trust', '--workspace',
                     '--output-format', '--resume', '--list-models', '--add-dir') })
         SignedIn = {
             param($L)
@@ -248,7 +254,7 @@ $Adapters = @{
             $a = @('-p', '--output-format', 'json', '--trust', '--model', $model, '--workspace', $C.WorkDir)
             if ($C.ResumeId) { $a += '--resume', $C.ResumeId }
             foreach ($d in $C.ReadDirs) { $a += '--add-dir', $d }
-            $a += if ($C.Mode -eq 'write') { @('-f') } else { @('--mode', 'plan') }
+            $a += if ($C.Mode -eq 'write') { @('-f', '--sandbox', 'disabled') } else { @('--mode', 'plan') }
             $prompt = $C.Prompt
             if ($C.Schema) {
                 # Cursor has no schema flag: ask for the shape in the brief and validate afterwards.

@@ -44,7 +44,10 @@ the host's own model.
 
 - **Native:** the resolved harness is the host, and the host can spawn a
   subagent on a chosen model (`references/hosts.md`, "Spawn"). Spawn it the
-  way `hosts.md` says, passing the model and effort.
+  way `hosts.md` says, passing the model and effort. A native subagent has
+  the host session's permissions and sandbox, no more. If those stop a write
+  role from committing, reaching the network or using Docker, tell the owner
+  what was refused; the session has to be started with more access.
 - **CLI:** every other case, including a host that cannot choose a model for
   a subagent and a write role that needs its own worktree on a host without
   native isolation. Run the harness's command line through the script next to
@@ -77,7 +80,12 @@ the host's own model.
   - `timeout`, `failed`, `invalid-output`: handle as in step 5.
 
   Write mode runs only in a linked worktree (`git worktree add`); the script
-  refuses a main checkout. Read-only mode uses each CLI's own flag, and the
+  refuses a main checkout. Write mode is full access: the script starts the
+  CLI with approvals and the sandbox turned off, so the delegate can edit,
+  commit, reach the network (to download packages) and use Docker. Nothing
+  confines it to the worktree: the brief is the only limit on what it does.
+  A role that must download packages or use Docker needs write mode, because
+  read-only allows neither. Read-only mode uses each CLI's own flag, and the
   script fails a read-only run that changed the work directory. What
   read-only still allows differs per CLI: see `references/<harness>-cli.md`. If
   the CLIs may have changed, run the script with `-Check` first.
@@ -102,9 +110,7 @@ skills. The brief carries everything it needs:
   (`hosts.md`, "Read-only"); the CLI route enforces it with the CLI's flag.
   When the read-only CLI cannot run commands, put the check output (diff,
   test results) in the brief.
-- For a write role: commit to the worktree branch, never push. A Codex coder
-  cannot write `.git` (`references/codex-cli.md`): it leaves the change
-  uncommitted with a commit message in its report, and you commit it.
+- For a write role: commit to the worktree branch, never push.
 - What to report back, and in what shape.
 
 The calling skill supplies the content (for example `orchestrate`'s coder

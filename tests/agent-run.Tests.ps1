@@ -161,16 +161,18 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             $a = $r.Run.args
             $a[[array]::IndexOf($a, '--permission-mode') + 1] | Should -Be 'dontAsk'
             $a[[array]::IndexOf($a, '--tools') + 1] | Should -Not -Match 'Edit|Write'
-            $a | Should -Not -Contain 'auto'
+            $a | Should -Not -Contain 'bypassPermissions'
         }
-        It 'codex: read-only sandbox' {
+        It 'codex: read-only sandbox, never the bypass flag' {
             $a = (Invoke-AgentRun (Base 'codex')).Run.args
             $a[[array]::IndexOf($a, '-s') + 1] | Should -Be 'read-only'
+            $a | Should -Not -Contain '--dangerously-bypass-approvals-and-sandbox'
         }
-        It 'cursor: plan mode and no -f' {
+        It 'cursor: plan mode, no -f and no sandbox switch' {
             $a = (Invoke-AgentRun (Base 'cursor')).Run.args
             $a[[array]::IndexOf($a, '--mode') + 1] | Should -Be 'plan'
             $a | Should -Not -Contain '-f'
+            $a | Should -Not -Contain '--sandbox'
         }
         It 'fails a read-only run that changed the work directory' {
             $r = Invoke-AgentRun (Base 'cursor') -Env @{ FAKE_CLI_MODE = 'scribble' }
@@ -180,24 +182,33 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
         }
     }
 
-    Context 'write mode' {
+    Context 'write mode is full access, with each CLI''s own flag' {
         It 'refuses a work directory that is not a linked worktree' {
             $r = Invoke-AgentRun (Base 'claude' 'write' $Repo)
             $r.Json.status | Should -Be 'failed'
             $r.Json.error | Should -Match 'worktree'
             $r.Run | Should -BeNullOrEmpty
         }
-        It 'claude: auto permission mode' {
+        It 'claude: bypassPermissions, with no tool list' {
             $a = (Invoke-AgentRun (Base 'claude' 'write' $Worktree)).Run.args
-            $a[[array]::IndexOf($a, '--permission-mode') + 1] | Should -Be 'auto'
+            $a[[array]::IndexOf($a, '--permission-mode') + 1] | Should -Be 'bypassPermissions'
+            $a | Should -Not -Contain '--tools'
         }
-        It 'codex: workspace-write sandbox' {
+        It 'codex: bypasses approvals and the sandbox' {
             $a = (Invoke-AgentRun (Base 'codex' 'write' $Worktree)).Run.args
-            $a[[array]::IndexOf($a, '-s') + 1] | Should -Be 'workspace-write'
+            $a | Should -Contain '--dangerously-bypass-approvals-and-sandbox'
+            $a | Should -Not -Contain '-s'
         }
-        It 'cursor: -f and no plan mode' {
+        It 'codex: a resumed run is still full access' {
+            $a = (Invoke-AgentRun ((Base 'codex' 'write' $Worktree) + @('-ResumeId', 'abc-123'))).Run.args
+            $a[1] | Should -Be 'resume'
+            $a | Should -Contain '--dangerously-bypass-approvals-and-sandbox'
+            ($a -join ' ') | Should -Not -Match 'sandbox_mode'
+        }
+        It 'cursor: -f with the sandbox off, and no plan mode' {
             $a = (Invoke-AgentRun (Base 'cursor' 'write' $Worktree)).Run.args
             $a | Should -Contain '-f'
+            $a[[array]::IndexOf($a, '--sandbox') + 1] | Should -Be 'disabled'
             $a | Should -Not -Contain '--mode'
         }
     }

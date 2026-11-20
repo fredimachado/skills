@@ -54,7 +54,8 @@ switch ($cli) {
     }
     'codex' {
         if ($rest -contains '--help') {
-            Write-Help '-m', '-s', '-C', '--json', '-o', '--output-schema', '-c', 'resume'
+            Write-Help '-m', '-s', '-C', '--json', '-o', '--output-schema', '-c', 'resume',
+                '--dangerously-bypass-approvals-and-sandbox'
             exit 0
         }
         if ($rest[0] -eq 'login') {
@@ -68,7 +69,7 @@ switch ($cli) {
     }
     'cursor-agent' {
         if ($rest -contains '--help') {
-            Write-Help '-p', '--model', '--mode', '-f', '--trust', '--workspace', '--output-format',
+            Write-Help '-p', '--model', '--mode', '-f', '--sandbox', '--trust', '--workspace', '--output-format',
                 '--resume', '--list-models', '--add-dir'
             exit 0
         }

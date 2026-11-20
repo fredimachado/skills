@@ -17,7 +17,7 @@ macOS; needs `jq`) before relying on this page.
 | Schema | `--output-schema <file>`; the final message is the JSON |
 | Resume | `codex exec resume [options] <thread_id> -`; the thread id stays the same |
 | Read-only | `-s read-only`; on resume `-c sandbox_mode=read-only` (no `-s` there) |
-| Write | `-s workspace-write`; on resume `-c sandbox_mode=workspace-write` |
+| Write (full access) | `--dangerously-bypass-approvals-and-sandbox`, on a new run and on resume |
 | Signed in | `codex login status` exits 0 |
 | Models offered | `codex debug models` prints the catalog as JSON; each model has a `slug` |
 
@@ -32,19 +32,21 @@ the one requested.
 - Observed 2026-11-19: `git diff --stat` worked; creating a file was refused
   ("writing is blocked by read-only sandbox").
 
-## What write mode allows, and what it does not
+## What write mode allows
 
-- Edits inside the work directory and its writable roots.
-- **Not `.git`.** Under `workspace-write`, `.git` and a worktree's resolved
-  `gitdir` stay read-only by design (Codex docs). Observed 2026-11-19 in a
-  linked worktree: `git add` and `git commit` failed creating `index.lock`,
-  also with `--add-dir <repo>/.git` and with `--approve-for-me`. A Codex coder
-  therefore cannot commit: its brief must say to leave the change
-  uncommitted and put a commit message (why, what, how proved) in its
-  report, and the caller commits.
-- No network by default. That also matters when Codex is the **host** and
-  runs another CLI through `agent-run.ps1`: see `hosts.md`, "Run the CLI
-  route".
+Everything. `--dangerously-bypass-approvals-and-sandbox` turns off the
+sandbox and every approval, so the delegate can edit, commit, reach the
+network and use Docker. Observed 2026-11-20 in a linked worktree, on a new
+run and on a resumed one: the delegate edited a file, ran `git commit`,
+fetched a web page with `curl` and read the server version from
+`docker version`.
+
+The `workspace-write` sandbox is not enough for a coder. It keeps `.git` and
+a worktree's resolved `gitdir` read-only by design (Codex docs), so
+`git commit` failed creating `index.lock` (observed 2026-11-19, also with
+`--add-dir <repo>/.git` and with `--approve-for-me`), and it has no network
+by default. Both still apply when Codex is the **host**: see `hosts.md`,
+"Create branches and commit" and "Run the CLI route".
 
 ## Notes
 

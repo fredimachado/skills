@@ -17,7 +17,7 @@ macOS; needs `jq`) before relying on this page.
 | Schema | `--json-schema '<schema JSON>'`; the validated object is in `structured_output` |
 | Resume | `--resume <session_id>`; the session id stays the same |
 | Read-only | `--permission-mode dontAsk --tools Read,Grep,Glob,Bash --allowedTools "Bash(git diff:*)" "Bash(git log:*)" "Bash(git show:*)" "Bash(git status:*)" "Bash(git rev-parse:*)"` |
-| Write | `--permission-mode auto` |
+| Write (full access) | `--permission-mode bypassPermissions` |
 | Signed in | `claude auth status` prints JSON with `loggedIn` |
 | Models offered | no list command; an unknown model fails the run |
 
@@ -39,10 +39,23 @@ larger model in `modelUsage`. That is a substitution.
 
 ## What write mode allows
 
-`auto` lets an automatic classifier approve actions. Observed 2026-11-19 in a
-linked worktree: the delegate edited a file and ran `git add` and
-`git commit`. `acceptEdits` is not enough for a coder: it allows edits but
-refused `git commit` in print mode.
+Everything. `bypassPermissions` skips every permission check, and Claude Code
+has no sandbox of its own here, so the delegate can edit, run any command,
+reach the network and use Docker. Observed 2026-11-20 in a linked worktree:
+the delegate edited a file, ran `git commit`, fetched a web page with `curl`
+and read the server version from `docker version`.
+
+- `auto` is not enough: a classifier decides each action, and by default it
+  blocks downloading and executing code (docs, read 2026-11-20). In print
+  mode a blocked action does not run and the delegate carries on without
+  it, so a package install or a Docker command is not sure to happen.
+  `acceptEdits` allows edits but refused `git commit` in print mode
+  (observed 2026-11-19).
+- On Linux and macOS, Claude Code refuses to start in `bypassPermissions`
+  as root or under `sudo`, except inside a sandbox it recognizes. Managed
+  settings can turn the mode off with
+  `permissions.disableBypassPermissionsMode` (docs, read 2026-11-20). The
+  run then fails; report the role as unavailable with that reason.
 
 ## Notes
 

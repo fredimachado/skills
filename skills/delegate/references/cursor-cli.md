@@ -21,7 +21,7 @@ resolves it with `Get-Command`, so this does not matter there.
 | Schema | no flag. The script appends the schema to the brief, takes the JSON object from the reply and validates it |
 | Resume | `--resume <session_id>`; the session id stays the same and the delegate keeps its context (observed 2026-11-19) |
 | Read-only | `--mode plan` |
-| Write | `-f` (allow commands); print mode edits files by default |
+| Write (full access) | `-f --sandbox disabled`: `-f` allows every command (`--yolo` is its alias), and `--sandbox disabled` keeps a sandbox set in the owner's config from applying. Print mode edits files by default |
 | Signed in | `cursor-agent status` exits 0 and does not say "not logged in" |
 | Models offered | `cursor-agent --list-models`, one `<model> - <name>` per line |
 
@@ -41,11 +41,19 @@ the one requested.
 - `--sandbox enabled` is not available on Windows ("Sandbox requires macOS
   or Linux").
 
-## Write mode
+## What write mode allows
 
-Observed 2026-11-19 in a linked worktree with `-f`: the delegate edited,
-ran `node`, and committed with `git`. Cursor adds a `Co-authored-by: Cursor`
-trailer to its commits.
+Everything: edits, any command, the network and Docker. Observed 2026-11-20
+(Cursor Agent 2026.11.19, Windows) in a linked worktree with
+`-f --sandbox disabled`: the delegate edited a file, ran `git commit`,
+fetched a web page with `curl` and read the server version from
+`docker version`. Cursor adds a `Co-authored-by: Cursor` trailer to its
+commits.
+
+Cursor's sandbox exists only on macOS and Linux, so on Windows the switch
+changes nothing. Whether `-f` alone leaves a sandbox on there is not
+confirmed; the script passes `--sandbox disabled` on every system, so it
+does not matter.
 
 ## Notes
 

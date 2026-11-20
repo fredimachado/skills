@@ -48,7 +48,7 @@ your tool list, use the fallback in the same row.
 | Host | How |
 |---|---|
 | Claude Code | Git works under the session's normal permissions. |
-| Codex | Under the `workspace-write` sandbox, `.git` and a worktree's resolved `gitdir` are read-only by design (Codex docs): `git switch -c` and `git commit` fail (observed 2026-11-18 and 2026-11-19, 0.166.0; neither `--add-dir <.git>` nor `--approve-for-me` changed it). An orchestrator on Codex stops before coding and says so, unless the owner runs the session with a sandbox that allows it. A Codex coder (as a delegate) leaves its change uncommitted with a commit message in its report; the caller commits it. |
+| Codex | Under the `workspace-write` sandbox, `.git` and a worktree's resolved `gitdir` are read-only by design (Codex docs): `git switch -c` and `git commit` fail (observed 2026-11-18 and 2026-11-19, 0.166.0; neither `--add-dir <.git>` nor `--approve-for-me` changed it). An orchestrator on Codex stops before coding and says so, unless the owner runs the session with a sandbox that allows it. A Codex coder that another host runs through the CLI route has no sandbox (`codex-cli.md`) and commits its own work. |
 | Cursor | Git works in print mode with `-f` (observed 2026-11-18 and 2026-11-19). |
 
 ## Read-only subagent
