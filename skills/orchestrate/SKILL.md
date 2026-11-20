@@ -54,8 +54,8 @@ Choose it at the start and write it in the task file. Merging stays with the
 owner in every case: never merge, never enable auto-merge.
 
 - `local`: reviewed and verified on the branch, nothing pushed.
-- `open-for-review` (default): pull request open, reviewed locally,
-  verification recorded.
+- `open-for-review` (default): pull request open with CI green on its head,
+  reviewed locally, verification recorded.
 - `merge-ready`: after the pull request opens, `babysit-pr`
   (`../babysit-pr/SKILL.md`) watches it until required checks pass, the
   configured bots reviewed the current head and no thread is unresolved.
@@ -81,8 +81,9 @@ branch in the repo's naming (`feat/<slug>`, `fix/<slug>`), in a git worktree
 when the checkout holds unrelated uncommitted work. Check `git status` first:
 changes that are not yours belong to the user; never stash, reset or commit
 them. Run tasks in parallel only when they touch disjoint files, neither needs
-the other's result, and each coder can get its own worktree (`hosts.md`).
-Otherwise run them in order.
+the other's result, each coder can get its own worktree (`hosts.md`), and the
+application can be driven twice at once: no two runs share a fixed port,
+container name or data folder. Otherwise run them in order.
 
 ### 3. Create the task file
 
@@ -146,7 +147,9 @@ before the pull request. Not per slice. Its findings go in the same ledger.
 ### 8. Push and open the pull request
 
 You alone push, and only a reviewed and verified head; with `local`, push
-nothing. Then use `file-pr` (`../file-pr/SKILL.md`): a real pull request, not
+nothing. Read the check results before you push, and push as its own command:
+`check | tee log && git push` pushes a failure, because the pipe reports
+`tee`'s status. Then use `file-pr` (`../file-pr/SKILL.md`): a real pull request, not
 a draft, with the verification, what was not verified, the deferred findings,
 the council record when one ran, and every coder's and reviewer's model and
 harness as recorded. Put the link in the task file. With `merge-ready`,
@@ -154,6 +157,15 @@ continue with `babysit-pr`. If the user wants the work on the default branch,
 coders commit there; open no PR and push only if asked. Never post, reply to
 or resolve PR comments without the owner's say; put drafted replies in the
 report.
+
+A push is not finished until CI is green on the pushed SHA. Confirm a run
+started for it (`gh run list --commit <SHA>`): a push can start no run at
+all, and no run is not green. Wait for it the way `hosts.md` says to wait on
+a long command: for a pull request, the watcher with `-Until green`
+(`../babysit-pr/SKILL.md`, "Waiting"); otherwise
+`gh run watch <run id> --exit-status`. A red run on your push is a must-fix,
+and a red default branch comes before any other work. `open-for-review` ends
+here: it does not wait for reviews or bots.
 
 ### 9. Report
 

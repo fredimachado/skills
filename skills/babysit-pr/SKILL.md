@@ -69,7 +69,10 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
 - Apply `review-loop`'s triage (`../review-loop/SKILL.md`, "Triage") to every
   finding: agree and fix, disagree with evidence, or decline as out of scope
   and list it as a follow-up. Tell repository failures from infrastructure
-  flakes before changing code.
+  failures before changing code. Infrastructure is what the log shows: a
+  runner that died, a network error, an outage. A test that fails only
+  sometimes is a finding until shown otherwise: find the cause, and never
+  rerun it until it passes.
 - Keep the PR at the size the goal needs. Review loops grow a PR one
   cheap-looking fix at a time: fix real bugs in the intended case, decline the
   rest with a reason, prefer the fix that deletes or narrows code.
@@ -79,7 +82,9 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
 ## Fixing and pushing
 
 - Fixes go through coders (`delegate`); you do not edit the code. Prove each
-  fix before pushing: the checks, the failing test, the application.
+  fix before pushing: the checks, the failing test, the application. Read the
+  results, then push as its own command: `check | tee log && git push` pushes
+  a failure, because the pipe reports `tee`'s status.
 - A commit after the reviewed head that changes behavior needs a focused
   review of that delta before it is pushed (`review-loop`); comments,
   documents and formatting do not.

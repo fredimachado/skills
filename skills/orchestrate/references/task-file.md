@@ -60,6 +60,7 @@ back in a later round keeps its id.
 - <date/time> — <decision> — <why>
 
 ## Verification
+- Verified at `<head SHA>`, in a clean checkout or worktree at that commit
 - <build/test command> → <result>
 - New tests fail without the change: <how checked> → <result>
 - <scenario driven in the real app> → <what was observed>

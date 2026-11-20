@@ -92,6 +92,12 @@ The harness's own `up` instance can go stale too. `up` records the commit it sta
 `doctor` fails if that instance has died or the tree has moved to another commit, and notes
 files edited since it started; `run` refuses while a service it needs is still up.
 
+**Two runs on one machine.** Agents work in parallel worktrees, so the harness may be started
+twice at once. Keep each run's data under `{run_dir}`, and do not fix names (containers,
+compose projects, databases) or ports to one value that both runs would claim: take them from
+something each worktree can set differently. If the app cannot run twice on one machine, write
+that under *Gotchas*, so a caller runs one worktree at a time.
+
 If something needs a decision only the user can make (adding a seam, installing a browser,
 test credentials), ask once with a concrete recommendation.
 

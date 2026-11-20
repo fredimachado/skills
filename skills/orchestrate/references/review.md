@@ -6,9 +6,15 @@ The reviewer reads the diff; these checks are yours.
 
 ## Before review
 
-Run these yourself and record the commands and results in the task file:
+Run these yourself, on the commit you will send for review: `git status` is
+clean and `HEAD` is that SHA. If the checkout has uncommitted changes, or a
+coder is still working in it, use a clean worktree at that SHA. Otherwise you
+test someone's edits, not the commit. Record the commands, the results and
+the SHA in the task file:
 
-1. The build, the tests and the linters.
+1. The build, the tests and the linters that CI runs. Read the workflow for
+   the commands and the operating systems. A system CI covers that you could
+   not run goes under Not verified.
 2. **New tests fail without the change.** In a temporary worktree at the
    head, put the non-test files the task touched back to the base
    (`git checkout <base> -- <changed paths>`, and `git rm` the ones it
