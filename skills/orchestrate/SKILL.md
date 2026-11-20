@@ -33,7 +33,11 @@ sketches, and keep the task file. Merge conflicts are code; delegate them.
 **2. The task file is the single source of truth.** Every task, finding,
 deferral and decision is written there when it happens, by you alone. The
 user reads it at the end; you read it to recover if your context is
-summarized. Template and location: `references/task-file.md`.
+summarized. A summary keeps what happened and drops these rules: the task
+file lists the absolute path of every skill file this run follows, and
+after a summary or a resume you read the task file and each of those files
+again before your next action. Template and location:
+`references/task-file.md`.
 
 **3. The coding standards apply to you and to the coders.** Read
 `coding-standards` before you plan. Coders get its absolute path in the brief.
@@ -75,10 +79,11 @@ owner in every case: never merge, never enable auto-merge.
 ### 1. Plan
 
 Read the relevant code first. Then use `plan`: it decides whether a plan file
-is needed, runs the one `planner`, and you run its gate. With no plan file,
-the task list and the briefs are the plan, and their sketches still follow
-`../plan/references/sketches.md`. No coder starts on a plan that failed its
-gate. Link the plan file from the task file.
+is needed, runs the one `planner`, and you run its gate and its review
+against the code. With no plan file, the task list and the briefs are the
+plan, and their sketches still follow `../plan/references/sketches.md`. No
+coder starts on a plan that failed its gate or whose review left a must-fix
+open. Link the plan file from the task file.
 
 Tell the user the plan in a few lines and proceed. Ask first only when a
 decision is theirs and changes what gets built (`hosts.md`, "Ask the owner").
@@ -94,10 +99,17 @@ the other's result, each coder can get its own worktree (`hosts.md`), and the
 application can be driven twice at once: no two runs share a fixed port,
 container name or data folder. Otherwise run them in order.
 
-### 3. Create the task file
+### 3. Create the task file and take the baseline
 
 Before the first coder starts, per `references/task-file.md`, with the base
 SHA. Tell the user its absolute path.
+
+Then run the build, the tests and the linters at the base SHA, before any
+change, and record each command and its result under Baseline. A check that
+fails there predates the work: it is no finding against any task, every
+brief names it so no coder fixes it in passing, and the report lists it. If
+it blocks the work, ask the owner whether fixing it becomes a task of its
+own.
 
 For a fix, run the reproduction from the verification plan now, at the base,
 and record what you saw. If you cannot make it fail, you do not know yet what
@@ -147,7 +159,8 @@ merge, run the full build and tests, and review the combined diff when slices
 interact. Drive the application through the whole verification plan,
 including nearby behavior the change could disturb, and record what you saw.
 For a fix, run the same reproduction again and see the failure gone. A
-failure is a must-fix. A later commit that changes behavior (hardening, a
+failure is a must-fix, unless it predates the work (`references/review.md`,
+"Before review"). A later commit that changes behavior (hardening, a
 merge, a conflict fix) needs a focused review of that delta before any push;
 comments, documents and formatting do not. With the review budget spent,
 defer optional fixes rather than apply them unreviewed. Then walk the final
@@ -160,6 +173,7 @@ created once merged; report any left with unmerged work.
 **Risky work** (security, data loss or migration, concurrency or shared
 state), or when the user asks: call `council` once on the integrated diff,
 before the pull request. Not per slice. Its findings go in the same ledger.
+The council `plan` ran on the plan file does not replace it.
 
 ### 8. Push and open the pull request
 

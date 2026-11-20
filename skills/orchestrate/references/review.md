@@ -32,6 +32,19 @@ already knew. A check that fails the same way at the base is not this
 change's failure. Record it as pre-existing and say so in the reviewer's
 brief.
 
+How you know it fails the same way at the base:
+
+- The task file's Baseline shows the same check failing with the same test
+  and the same error.
+- For a check the baseline did not run, run it at the base SHA in a
+  temporary worktree set up like the main tree (dependencies installed, same
+  setup), then remove the worktree, and add the result to the Baseline. If
+  it passes there, or the worktree cannot run it, the failure is this
+  change's.
+
+A check the environment cannot run (no database, credentials or network)
+goes under Not verified. Never send it to a coder to fix.
+
 ## Calling review-loop
 
 Pass: base SHA and head SHA of the task, its paths, the intent from the

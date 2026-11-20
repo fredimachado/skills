@@ -5,15 +5,19 @@ directory if the environment provides one, otherwise the OS temp directory,
 named `orchestrate-<slug>-<YYYYMMDD>.md`. Keep it outside the repository so
 no `git add` picks it up and every worktree sees the same file. Tell the user
 its absolute path. If a task file for this work already exists, read it and
-continue from it. First fetch and compare the base with the recorded base
-SHA. If it moved, read what landed before you continue: work that sat can
-describe code that changed since, or solve a problem someone else already
-solved. Record what you found under Decisions.
+continue from it, after reading again every file it lists under "Skills in
+use". First fetch and compare the base with the recorded base SHA. If it
+moved, read what landed before you continue: work that sat can describe code
+that changed since, or solve a problem someone else already solved. Record
+what you found under Decisions.
 
 You are its only writer. Write each entry when it happens, not at the end.
 
 ````markdown
 # Orchestration: <title>
+
+> Orchestrator: after a context summary or a resume, read every file under
+> "Skills in use" again before your next action. Their rules still hold.
 
 - **Goal:** <one or two sentences>
 - **Finish condition:** local | open-for-review | merge-ready
@@ -22,11 +26,22 @@ You are its only writer. Write each entry when it happens, not at the end.
 - **Started:** <date>
 - **PR:** <link, once opened>
 
+## Skills in use
+- <absolute path>/orchestrate/SKILL.md, and its references/brief.md,
+  review.md and task-file.md
+- <absolute path of each other skill file this run follows, added when you
+  first use it: coding-standards, delegate and its references/hosts.md,
+  plan, review-loop, council, file-pr, babysit-pr>
+
 ## Verification plan
 - <behavior> — driven with <driver/harness>: <user actions> → <what the user should observe>
 - Reproduction (fixes only): <user actions> → failed at `<base SHA>`: <what was seen>
 - Harness to build: <what, as task Tn> (or "none needed")
 - Cannot be verified by an agent: <what and why> (or "nothing")
+
+## Baseline
+- <build/test/lint command> at `<base SHA>` → pass | fail: <test and error>
+- Could not run here: <check and why> (or "nothing")
 
 ## Tasks
 - [ ] T1 — <task> · complexity: low|medium|complex · role: coder-simple → <harness>/<model>/<effort> · agent: <id>
@@ -35,6 +50,12 @@ You are its only writer. Write each entry when it happens, not at the end.
 ## Plan gate
 - <gate line> → pass | fail: <gap>, searched <what> → <result>
 - Revision: none | 1 (planner session <id>) → pass | fail
+
+## Plan review
+- Reviewer: reviewer · <harness>/<model> (or council-a and council-b, each
+  with harness/model) → APPROVE | CHANGES
+- Not covered: <what, and whether you covered it yourself>
+- Revision: none | 1 (planner session <id>) → gate pass | fail, findings closed: <ids>
 
 ## Rounds
 | Task | Round | Base SHA | Reviewed head SHA | Reviewer (role · harness/model) | Verdict | Open must-fix | Diff (`--shortstat`) |

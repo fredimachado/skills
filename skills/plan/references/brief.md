@@ -60,3 +60,14 @@ The plan failed these gate lines:
 Revise the plan to close only these gaps. Your final message is the whole
 revised plan file, nothing else.
 ````
+
+And once per review round, with the findings the caller agreed with:
+
+````markdown
+A reviewer checked the plan against the code. Fix these findings:
+- F<n> <severity>, <plan section>, `<path:line>`: <what is wrong and what
+  breaks when the slice is carried out as written>
+
+Revise the plan to close only these findings. Your final message is the
+whole revised plan file, nothing else.
+````

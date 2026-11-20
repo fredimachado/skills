@@ -42,8 +42,15 @@ Then one block per finding:
 - claim: <what is wrong, with the input or case that shows it>
 - fix: <direction, not a full patch>
 
-No scores, no praise, no summary. APPROVE means no must-fix and no
-should-fix you would insist on.
+Each finding meets "The bar for a finding" in the criteria file, or you drop
+it. After the findings, always these two lists, with APPROVE too:
+
+Checked and clear: <what you examined and found sound>
+Not covered: <what you could not reach and why: a command you could not
+run, a file you could not read, missing data or credentials; or "nothing">
+
+No scores, no praise. APPROVE means no must-fix and no should-fix you would
+insist on.
 ````
 
 ## Round 2 and later
@@ -59,6 +66,25 @@ Review only what changed since <last reviewed SHA>
 - F3 should-fix <file:line> <claim>
 For each open id, write `F<n>: resolved` or `F<n>: still open, <why>` before
 any new finding. New findings take ids starting at F<next>.
+````
+
+## Reviewing a plan
+
+Replace the "Role" and "What to review" sections with these, and leave out
+"Checks already run":
+
+````markdown
+## Role
+You are reviewing a plan before any code is written. You are read-only: do
+not edit, create or delete any file, and do not commit.
+
+## What to review
+Plan: <absolute path to the copy of the plan file>
+Repository: <absolute path>, at `<SHA>`. The plan was written against this
+code: read the code each slice will change.
+Request: <the user's request, verbatim>
+Use "Reviewing a plan" in the criteria file. In each finding, `where` is
+the plan section and the `path:line` of the code it relies on.
 ````
 
 ## Reply to a disputed finding

@@ -22,6 +22,33 @@ Neither are paths the change did not touch, rare cases the intended use will
 not reach, small performance costs, or extra compatibility. Each round costs
 a full fix turn, and nit-picks bury the findings that matter.
 
+## The bar for a finding
+
+Report a finding only when you can show how it goes wrong:
+
+- **Behavior:** the input or state, the line that mishandles it, and the
+  wrong result, crash, corruption or leak that follows.
+- **Intent:** the item of the plan or the intent, and what the diff does
+  instead or leaves undone.
+- **Standards:** the line of the standards file, quoted, and the code that
+  breaks it. If the file does not say it, it is not a rule.
+
+Without that, read further until you have it, or drop the candidate. Read
+past the diff: the changed functions in full, then their callers, then the
+tests that cover them. Never cite a line, a call site or a behavior you have
+not read, and label an inference as one. Check the intent and the caller's
+check results against the code like any other claim. Finding nothing is a
+valid result: do not raise findings to look thorough.
+
+These are not findings either:
+
+- a check the brief marks `(pre-existing)`
+- what a compiler, a type checker or a linter reports on its own
+- "needs more tests" or "needs more docs" that names no untested behavior
+  or path that can break
+- a behavior change that is the point of the change, reported as a
+  regression
+
 **Severity rule.** Severity follows what the change claimed or exercised,
 not the fact that the standards were in the brief (they always are). Prefer
 must-fix when the change claimed the behavior, ran TDD for a behavior
@@ -57,6 +84,30 @@ especially:
 - **Invariants**: each listed invariant has its test, and it passes.
 - **Commit quality and action log**: Practice; should-fix unless proof for a
   claimed must-fix behavior is missing.
+
+## Reviewing a plan
+
+Read the code each slice will change, then check the plan against it.
+**must-fix**: coders following the plan as written would build something
+wrong or get stuck. **should-fix**: it would work, at a cost a careful
+maintainer would remove now. Look for:
+
+- **Claims about the code**: every statement about what existing code does,
+  takes or returns, checked at its `path:line`.
+- **Order**: a slice that needs something no earlier slice provides, or that
+  cannot pass its own checks when done alone.
+- **Hollow verification**: a test or scenario that would still pass with the
+  slice undone.
+- **Guesswork**: a slice a coder would have to guess at. Name the open
+  decision, two plausible readings, and how the results differ.
+- **Approach**: a premise the code contradicts, work the code already does,
+  or a named simpler or safer design that reaches the same goal.
+- **Hidden scope**: callers, contracts, existing data or users the change
+  touches and the plan does not name.
+- **Standards**: a sketch that breaks the coding standards.
+
+The bar for a finding holds: the plan section, the `path:line` it relies on,
+and what breaks when the slice is carried out as written.
 
 ## Deciding on should-fix
 
