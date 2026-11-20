@@ -5,7 +5,10 @@ directory if the environment provides one, otherwise the OS temp directory,
 named `orchestrate-<slug>-<YYYYMMDD>.md`. Keep it outside the repository so
 no `git add` picks it up and every worktree sees the same file. Tell the user
 its absolute path. If a task file for this work already exists, read it and
-continue from it.
+continue from it. First fetch and compare the base with the recorded base
+SHA. If it moved, read what landed before you continue: work that sat can
+describe code that changed since, or solve a problem someone else already
+solved. Record what you found under Decisions.
 
 You are its only writer. Write each entry when it happens, not at the end.
 

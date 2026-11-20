@@ -11,6 +11,7 @@ Skills for Claude Code, Codex, Cursor and other agents that read `SKILL.md` file
 | [delegate](skills/delegate/SKILL.md) | Runs a role (planner, coder, reviewer, council seat) as a subagent on the harness and model your role file assigns, natively or through another harness's CLI. |
 | [file-pr](skills/file-pr/SKILL.md) | Opens a problem-first pull request with how it was verified, what was not, deferred findings and attribution. |
 | [babysit-pr](skills/babysit-pr/SKILL.md) | Watches your pull request through CI and review, triages what arrives, and reports when it is ready, waiting for a human, or blocked. Never merges. |
+| [modernize-pr](skills/modernize-pr/SKILL.md) | Brings an old pull request up to date and says whether it should still exist: modernize, rework or close. Never merges or closes. |
 | [coding-standards](skills/coding-standards/SKILL.md) | Coding standards (First make it work, Then make it right, Practice), for writing and reviewing code and for coder briefs. |
 | [bootstrap-verification](skills/bootstrap-verification/SKILL.md) | Sets up a project-specific verification skill so agents can build, run and check an app themselves. |
 | [encode-correction](skills/encode-correction/SKILL.md) | Turns a correction of the agent into a permanent fix in the project, so the same mistake can't happen again. |
@@ -124,3 +125,8 @@ overrides, shows the result and writes it only after you confirm, keeping the pr
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the
 `.sh` scripts on Linux and macOS.
+
+## Credits
+
+`modernize-pr`, and several rules in the review and pull request skills, come from
+[tstack](https://github.com/t3dotgg/tstack) (MIT).
