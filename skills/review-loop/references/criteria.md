@@ -11,14 +11,16 @@ what was skipped; the code says what was done.
   or a security hole, a behavior change with no test and no accepted
   justification, or a root cause hidden behind a guard.
 - **should-fix**: it works, but leaves a real cost a careful maintainer would
-  insist on removing. One decision living in two places, a plausible edge
-  case unhandled, a test that pins implementation instead of behavior, a
-  misleading name on a public surface.
+  insist on removing. One decision living in two places, an edge case the
+  intended use will reach left unhandled, a test that pins implementation
+  instead of behavior, a misleading name on a public surface, code the
+  intent does not need.
 
 Leave everything else alone. Style preferences, naming taste, equally good
 alternative approaches, and anything a formatter handles are not findings.
-Each round costs a full fix turn, and nit-picks bury the findings that
-matter.
+Neither are paths the change did not touch, rare cases the intended use will
+not reach, small performance costs, or extra compatibility. Each round costs
+a full fix turn, and nit-picks bury the findings that matter.
 
 **Severity rule.** Severity follows what the change claimed or exercised,
 not the fact that the standards were in the brief (they always are). Prefer
@@ -45,6 +47,9 @@ especially:
 - **Boundary and type discipline**: validate at the edge; illegal values
   unrepresentable; no silenced compiler.
 - **Subtract before add**: complexity added without removing any.
+- **Surplus**: code, tests, guards or options the intent does not need. Hold
+  the change to the smallest one that does the job. Should-fix, and the fix
+  is to remove them.
 - **No bolted-on design**: a requirement patched onto a design that cannot
   hold it.
 - **Idempotency and single writer**: must-fix when the change touches
