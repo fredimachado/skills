@@ -1,6 +1,6 @@
 ---
 name: council
-description: Get two independent reviews from models of different providers (the council-a and council-b roles) on the same diff, plan or document, in parallel, with a hard limit of two rounds. Use when the user asks for a council, a second opinion from another model or provider, a cross-model or two-reviewer review, or when orchestrate reaches risky work (security, data loss or migration, concurrency) before opening a pull request. Do not use for routine single-reviewer review (use review-loop), or when running as a delegate.
+description: Get two independent reviews from models of different providers (the council-a and council-b roles) on the same diff, plan or document, in parallel, with a hard limit of two rounds. Use when the user asks for a council, a second opinion from another model or provider, a cross-model or two-reviewer review, or when risky work (security, data loss or migration, concurrency) reaches plan's review of the plan or orchestrate's step before opening a pull request. Do not use for routine single-reviewer review (use review-loop), or when running as a delegate.
 ---
 
 # Council
@@ -52,10 +52,10 @@ reply. Two `APPROVE` verdicts on the same head end the council early.
 
 ## Not code
 
-For a plan or a document, the snapshot is the file at a path (copy it outside
-the repository first so it cannot change mid-round). Reviewers use the same
-reply shape; `file:line` points into that document. Fixes are revisions of
-the document by its author, not by the reviewers.
+A plan or a document is reviewed as `review-loop`, "Plans and documents",
+says: both seats get the same copy of the file, the same brief and the same
+reply shape. Fixes are revisions of the document by its author, not by the
+reviewers.
 
 ## Record
 

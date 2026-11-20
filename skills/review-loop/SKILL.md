@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: Run budgeted code review rounds on a diff with one or two read-only reviewer subagents, triage every finding against the code, keep a ledger of findings with stable ids, and stop at a hard round cap. Use when the user asks for a review of a diff, branch, commit range or pull request by a reviewer agent or model, wants a review-and-fix loop, or when another skill (orchestrate, council) needs review rounds or triage rules. Do not use for a quick opinion you can give yourself without a reviewer, or when running as a delegate.
+description: Run budgeted review rounds on a diff, or on a plan against the code, with one or two read-only reviewer subagents, triage every finding against the code, keep a ledger of findings with stable ids, and stop at a hard round cap. Use when the user asks for a review of a diff, branch, commit range, pull request or plan by a reviewer agent or model, wants a review-and-fix loop, or when another skill (orchestrate, plan, council) needs review rounds or triage rules. Do not use for a quick opinion you can give yourself without a reviewer, or when running as a delegate.
 ---
 
 # Review loop
@@ -40,13 +40,18 @@ between rounds except to move the head.
 ## 2. Reviewers
 
 Read-only, through `delegate`. Where the role file allows, a different model
-from the one that wrote the code; if the reviewer resolves to the coder's
-model, say so in the ledger. Review inline instead of spawning only when the
-role resolves (as `delegate` says) to this session's harness and to the model
-you are running as; if you cannot tell, or the role is empty, do not. If a
-reviewer role is
-unavailable, report the review as not done. Never review with another model
-in its place, and never treat a missing review as approval.
+from the one that wrote the code or the plan; if the reviewer resolves to
+the author's model, say so in the ledger.
+
+Every reviewer is a fresh subagent that has seen none of this conversation.
+Never do the reviewer's part yourself, also when the role resolves to this
+session's harness and model: spawn it on the native route (`delegate`,
+"Choose the route"). You wrote the briefs and read the author's reports, so
+your own reading is not an independent review.
+
+If a reviewer role is unavailable, report the review as not done. Never
+review with another model in its place, and never treat a missing review as
+approval.
 
 Build each reviewer's brief from `references/reviewer-brief.md`: the diff
 command, intent, out of scope, invariants, check results, plan path, the
@@ -64,11 +69,17 @@ VERDICT: CHANGES
 ```
 
 Then one finding per block: a stable **id**, **severity** (`must-fix` or
-`should-fix`), **`file:line`**, the **claim**, and a **fix direction**. No
-scores. Ignore praise, summaries and unlabelled nits. A reply without a
-verdict line counts as no reply; ask once again, then report the review as
-incomplete. `references/criteria.md` defines the severities and what to
-check.
+`should-fix`), **`file:line`**, the **claim**, and a **fix direction**. Then
+two lists, with either verdict: **Checked and clear** and **Not covered**.
+No scores. Ignore praise and unlabelled nits. A reply without a verdict line
+counts as no reply; ask once again, then report the review as incomplete.
+`references/criteria.md` defines the severities, the bar a finding must
+meet, and what to check.
+
+**Not covered** is a gap in the review, and the verdict does not reach it.
+Cover each item yourself (run the check, read the code) or record it as not
+reviewed. If the list is missing, ask once for it; if it still is, record
+the coverage as unknown.
 
 ## 4. Triage, by you, every finding
 
@@ -119,11 +130,31 @@ applying them unreviewed.
 The final verdict with its base and head SHA, rounds used, the diff size
 at round 1 and at the end, each reviewer's
 role, harness and model as `delegate` reported them, and the ledger: open,
-fixed (with SHA), declined with evidence, deferred, disputed. Say plainly if
-the loop stopped at a cap or with an unavailable reviewer.
+fixed (with SHA), declined with evidence, deferred, disputed. List what no
+reviewer covered and you did not cover yourself. Say plainly if the loop
+stopped at a cap or with an unavailable reviewer.
+
+## Plans and documents
+
+The same loop reviews a plan or a document before anything is built from
+it. What changes:
+
+- **Snapshot:** the file at a path, copied outside the repository first so
+  it cannot change mid-round, with the repository path and the SHA it was
+  written against. There is no diff command.
+- **Brief:** "Reviewing a plan" in `references/reviewer-brief.md`; the
+  criteria are "Reviewing a plan" in `references/criteria.md`.
+- **Where:** each finding points at the section of the document and the
+  `path:line` of the code it relies on.
+- **Fixes** are revisions by the document's author (for a plan, the planner
+  session), never by a reviewer.
+- **Later rounds** review the sections changed since the last round and the
+  open ids.
 
 ## Files
 
-- `references/criteria.md`: severities, the severity rule, review criteria,
-  deciding on should-fix, and the ledger.
-- `references/reviewer-brief.md`: the reviewer brief and the round-2+ form.
+- `references/criteria.md`: severities, the bar for a finding, the severity
+  rule, review criteria, reviewing a plan, deciding on should-fix, and the
+  ledger.
+- `references/reviewer-brief.md`: the reviewer brief, the round-2+ form and
+  the plan form.

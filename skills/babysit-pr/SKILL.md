@@ -91,7 +91,9 @@ watcher already holds this PR; **3** means still pending when `-MaxWaitSec` ran 
   failures before changing code. Infrastructure is what the log shows: a
   runner that died, a network error, an outage. A test that fails only
   sometimes is a finding until shown otherwise: find the cause, and never
-  rerun it until it passes.
+  rerun it until it passes. A check that fails the same way (same test, same
+  error) on the base branch predates the pull request: report it, and do not
+  fix it here unless the owner asks.
 - Keep the PR at the size the goal needs. Review loops grow a PR one
   cheap-looking fix at a time: fix real bugs in the intended case, decline the
   rest with a reason, prefer the fix that deletes or narrows code.

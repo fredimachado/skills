@@ -37,6 +37,9 @@ what changed, and how you proved it. Never push.
 
 ## Verify
 <exact commands for build, tests, lint, and what passing looks like; environment quirks>
+Already failing before this work, not yours to fix: <each check from the task
+file's Baseline with its error, or "none">. If another check was failing
+before you changed anything, say so in your report instead of fixing it.
 <how to launch and drive the real application for this task: the driver or harness, the
 user actions to perform, and what should be observed. Do this before reporting, and
 report what you saw. If a scenario cannot be driven, say so instead of skipping it.>

@@ -5,7 +5,7 @@ Skills for Claude Code, Codex, Cursor and other agents that read `SKILL.md` file
 | Skill | What it does |
 | --- | --- |
 | [orchestrate](skills/orchestrate/SKILL.md) | Runs a plan, code, review loop: one plan with code sketches, all coding delegated to coder subagents, reviews with hard caps, verification in the running app, and a pull request. |
-| [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, and checks it against a gate before any coding. |
+| [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, checks it against a gate and has a reviewer check it against the code before any coding. |
 | [review-loop](skills/review-loop/SKILL.md) | Runs budgeted review rounds with read-only reviewer subagents, a findings ledger with stable ids, and a hard round cap. |
 | [council](skills/council/SKILL.md) | Gets two independent reviews from models of different providers on the same diff, plan or document, with a limit of two rounds. |
 | [delegate](skills/delegate/SKILL.md) | Runs a role (planner, coder, reviewer, council seat) as a subagent on the harness and model your role file assigns, natively or through another harness's CLI. |
@@ -129,4 +129,6 @@ install APM when it is missing, showing the command first. Tests are in `tests/`
 ## Credits
 
 `modernize-pr`, and several rules in the review and pull request skills, come from
-[tstack](https://github.com/t3dotgg/tstack) (MIT).
+[tstack](https://github.com/t3dotgg/tstack) (MIT). The review of a plan against the
+code, the bar a reviewer's finding must meet, and the baseline for failures follow
+[graft](https://github.com/pleb/graft) (MIT).
