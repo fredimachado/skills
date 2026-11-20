@@ -22,6 +22,8 @@ cannot find:
 - **intent**: what the change is meant to do; **out of scope**: what it must
   not touch
 - **invariants**, if the work is stateful or a migration
+- **risk**, if the work is risky: security, data loss or migration,
+  concurrency or shared state
 - **check results** you ran yourself: build, tests, linters, new tests
   failing without the change, the application driven (commands and results)
 - **plan file** path, if there is one
@@ -154,7 +156,7 @@ it. What changes:
 ## Files
 
 - `references/criteria.md`: severities, the bar for a finding, the severity
-  rule, review criteria, reviewing a plan, deciding on should-fix, and the
-  ledger.
+  rule, review criteria, risky work, reviewing a plan, deciding on
+  should-fix, and the ledger.
 - `references/reviewer-brief.md`: the reviewer brief, the round-2+ form and
   the plan form.

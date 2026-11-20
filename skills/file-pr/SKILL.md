@@ -15,7 +15,9 @@ not orchestrate, delegate, or watch a pull request.
    PR exists, update it only if the user asked; otherwise report its link.
 2. **Is it the change you mean?** Review the diff against the base (usually
    `origin/<default branch>`): the contents match the goal, and nothing else
-   rode along (stray files, debug output, unrelated edits).
+   rode along (stray files, debug output, unrelated edits). Read it for
+   secrets too: a token, a key, a password, an `.env` or credentials file. A
+   push cannot be taken back, so stop and tell the user if you find one.
 3. **Is the head what was reviewed and verified?** Push only a head whose
    review and verification are recorded. A later commit that changes behavior
    needs its own review first. Never push to the default branch.
@@ -39,7 +41,8 @@ In this order:
 3. **How it was verified** in the running application: what was driven and
    what was seen, plus the checks that ran. Attach a screenshot from the
    verification run when it shows the behavior better than words and there
-   is a way to upload it.
+   is a way to upload it. When a before shot was taken at the base, show
+   both.
 4. **What was not verified**, and why.
 5. **Deferred findings**, by id, each with its reason.
 6. **Review**, when a reviewer ran: rounds, the reviewer's harness and model,
@@ -54,6 +57,20 @@ In this order:
 Keep it short. Items 3 to 7 take a line or two each unless something went
 wrong. Leave out an item with nothing to say, except item 4: there, write
 "nothing" only when that is true.
+
+**A pull request template wins.** Look for one first:
+`pull_request_template.md` (any case) in `.github/`, the repository root or
+`docs/`, or a file in `.github/PULL_REQUEST_TEMPLATE/`. With one, keep its
+sections, their order and their headings, replace each placeholder or
+comment with content, and add no section of your own. Put the items above
+where they fit; an item with no place goes under the template's notes, or at
+the end. Item 4 and the attribution are never dropped.
+
+**Issues.** After the solution, or where the template asks, one line per
+issue. `Resolves #<n>` only for an issue the user said this work fixes, or
+the task file records as resolved, and that `gh issue view <n>` shows open:
+the word closes the issue on merge. An issue the work only touches gets
+`Related #<n>`. Never guess an issue from a branch name or a search.
 
 The opening is where descriptions go wrong. Bad, an inventory:
 

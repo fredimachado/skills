@@ -53,9 +53,16 @@ your tool list, use the fallback in the same row.
 
 ## Read-only subagent
 
-No host enforces read-only on a native subagent per spawn: Claude Code and
-Cursor subagents get the parent's tools, and Codex subagents inherit the
-parent's sandbox. A native read-only role rests on its brief. The CLI route
+No host takes a read-only switch on a spawn. Cursor subagents get the
+parent's tools, and Codex subagents inherit the parent's sandbox. Claude Code
+sets a subagent's tools by its agent type, not per spawn (docs, read
+2026-11-20): a type defined without `Edit`, `Write` and `NotebookEdit`
+(`disallowedTools` in a custom agent's frontmatter, or the built-in `Plan`
+and `Explore` types) cannot edit files with those tools. The docs do not say
+its shell is restricted, so treat it as able to write. These skills install
+no agent type and spawn `general-purpose`, which has the parent's tools.
+
+So on every host a native read-only role rests on its brief. The CLI route
 enforces read-only with each CLI's own flag, and the script (`agent-run.ps1` or `agent-run.sh`) fails a
 read-only run that changed the work directory. What each CLI's read-only
 mode still allows is in `claude-cli.md`, `codex-cli.md` and `cursor-cli.md`.

@@ -29,6 +29,9 @@ skill adds only what follows.
 - Both seats review the **same snapshot**: the same base and head SHA, or the
   same file contents. Start both in parallel through `delegate`, with the
   same brief except for the seat name.
+- The brief names the risk that called for the council, so both seats also
+  use "Risky work" in `review-loop`'s criteria file. When the user asked for
+  the council without a risk, leave that line out.
 - **Collect both replies before changing anything.** Do not edit the
   checkout, commit, or start a coder while either seat is reviewing.
 - A round is both seats. Two rounds are four reviewer runs; round 3 makes six.

@@ -82,8 +82,34 @@ especially:
 - **Idempotency and single writer**: must-fix when the change touches
   migration, shared state or crash recovery; otherwise should-fix.
 - **Invariants**: each listed invariant has its test, and it passes.
+- **Comments and stale text**: a comment that narrates the change or
+  restates the code, or a doc, example or message the change made wrong.
+  Should-fix. A missing comment is not a finding.
 - **Commit quality and action log**: Practice; should-fix unless proof for a
   claimed must-fix behavior is missing.
+
+## Risky work
+
+When the brief names a risk (security, data loss or migration, concurrency
+or shared state), look first where a failure is expensive, dangerous or hard
+to see:
+
+- **Trust boundaries and permissions**: input that reaches a sink unchecked,
+  a check that can be bypassed, a secret in a log or a message.
+- **Data loss and changes that cannot be undone.**
+- **Partial failure**: the state left when a step fails halfway, and whether
+  a retry or a second run is safe.
+- **Races, ordering assumptions and stale state.**
+- **Empty, missing, slow or failing dependencies.**
+- **Compatibility and migration**: versions that run side by side, schema
+  drift, existing data and existing users.
+- **Hidden failure**: a swallowed error, a missing signal, success reported
+  when the work did not happen.
+- **The approach**: a premise the code contradicts, or a named simpler or
+  safer design that reaches the same goal.
+
+Something that works only on the happy path is a finding here. The bar for a
+finding still holds.
 
 ## Reviewing a plan
 

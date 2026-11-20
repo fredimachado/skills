@@ -96,6 +96,11 @@ Run by the caller, never by the planner. Accept the plan only if:
 - there is one data shape and one ownership model
 - every acceptance criterion is covered by a slice, and no line decides
   nothing ("handle edge cases", "TBD")
+- no open decision that would change what gets built is left open. For each
+  one the plan lists: a decision that is the owner's goes to the owner; a
+  conventional default you may take yourself. Record every one with who
+  decided it (owner, default, or you) and why. An answer that changes the
+  plan goes to the planner with the gate's revision.
 - every path and every symbol not marked **new** exists in the repository.
   Check each with a search (`git grep`, a file search), not by reading or
   from memory, and list what you searched.

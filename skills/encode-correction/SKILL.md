@@ -50,6 +50,15 @@ mistake got made. Count them; the count shapes step 5.
 
 ### 4. Climb the ladder
 
+**First, is the rule already written?** Search the instruction files, the
+skills, the linter config and `.agent/corrections.md` for it, by meaning and
+not only by wording. If it is there and was there when the mistake was made,
+the rule exists and is not holding. Writing it again, or louder (capitals,
+"IMPORTANT", a second copy in another file), rarely changes that. Change how
+it is enforced instead: move it up a level, move it to the file the agent
+reads at the moment it makes the mistake, or give it the concrete example it
+lacks. Replace the old wording; never leave two versions.
+
 **Level 1, can it be made impossible?** Ask:
 
 - Can a type make the wrong thing unrepresentable? (branded/newtype IDs, enums instead of
@@ -196,6 +205,8 @@ you use it, and call that copy from the lint script and CI.
 - Writing a rule into AGENTS.md when a one-line linter setting would enforce it.
 - Leaving the written rule (or a "do not remove" comment) in place after a guard enforces
   the same thing.
+- Adding a second copy of a rule that already exists, or louder wording for one that is
+  not holding.
 - Rules without reasons. They get deleted, ignored, or applied too broadly.
 - Guards with vague messages ("forbidden pattern"). The message is the agent's instructions.
 - Blocking the user's actual task on a large cleanup. Guard first, clean later.
