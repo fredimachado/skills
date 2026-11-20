@@ -21,6 +21,10 @@ Describe 'skill texts' {
         @(Get-ReadmeProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
     }
 
+    It 'gives every skill a box in the README.md diagram, and no box to a skill that is gone' {
+        @(Get-ReadmeDiagramProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
+    }
+
     It 'names only files that exist' {
         @(Get-PathReferenceProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
     }
@@ -34,7 +38,18 @@ Describe 'the checks themselves' {
     BeforeAll {
         $script:Fake = Join-Path ([IO.Path]::GetTempPath()) "skill text tests $([guid]::NewGuid().ToString('N').Substring(0, 8))"
         New-Item -ItemType Directory -Force (Join-Path $Fake 'skills/one/references'), (Join-Path $Fake 'skills/two') | Out-Null
-        Set-Content -LiteralPath (Join-Path $Fake 'README.md') -Value '[one](skills/one/SKILL.md) [gone](skills/gone/SKILL.md)'
+        Set-Content -LiteralPath (Join-Path $Fake 'README.md') -Value @'
+[one](skills/one/SKILL.md) [gone](skills/gone/SKILL.md)
+
+```mermaid
+flowchart TB
+    subgraph group["A group"]
+        one["one<br>the first"]
+        step("two<br>a step, not a box")
+        gone["gone"]
+    end
+```
+'@
         Set-Content -LiteralPath (Join-Path $Fake 'skills/one/SKILL.md') -Value @'
 ---
 name: one
@@ -63,6 +78,20 @@ Bad: (`two`, "No such heading") and "Nowhere" in `references/notes.md`.
         $problems | Should -HaveCount 2
         $problems -join "`n" | Should -Match 'no link to skills/two/SKILL.md'
         $problems -join "`n" | Should -Match 'skills/gone/SKILL.md, which does not exist'
+    }
+
+    It 'reports a skill the diagram leaves out, and a box for a skill that is gone' {
+        $problems = @(Get-ReadmeDiagramProblem $Fake)
+        $problems | Should -HaveCount 2
+        $problems -join "`n" | Should -Match 'no box for two'
+        $problems -join "`n" | Should -Match 'a box for gone, which is not a skill'
+    }
+
+    It 'reports a README.md with no diagram' {
+        $bare = Join-Path $Fake 'bare'
+        New-Item -ItemType Directory -Force (Join-Path $bare 'skills') | Out-Null
+        Set-Content -LiteralPath (Join-Path $bare 'README.md') -Value 'No diagram here.'
+        @(Get-ReadmeDiagramProblem $bare) | Should -Be 'README.md: no mermaid diagram'
     }
 
     It 'reports only the path that does not exist' {

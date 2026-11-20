@@ -2,6 +2,52 @@
 
 Skills for Claude Code, Codex, Cursor and other agents that read `SKILL.md` files.
 
+`orchestrate` runs the top row from left to right and uses the second row along the way;
+each of those skills also works on its own. The last two rows are separate skills. Rounded
+boxes are steps of `orchestrate`, not skills.
+
+```mermaid
+flowchart TB
+    %% A skill is a square box whose label starts with the skill's name; a step that is
+    %% no skill is a rounded box. tests/skill-text.ps1 checks that every skill has a box.
+    subgraph orchestrate["orchestrate"]
+        direction LR
+        plan["plan<br>one plan, gated and reviewed"]
+        code("code<br>coder subagents only")
+        review["review-loop<br>capped review rounds"]
+        verify("verify<br>drive the real application")
+        filepr["file-pr<br>open the pull request"]
+        babysit["babysit-pr<br>watch CI and reviews"]
+        plan --> code --> review --> verify --> filepr
+        review -. fixes .-> code
+        filepr -. if merge-ready .-> babysit
+    end
+    subgraph helpers["Used by the stages"]
+        direction LR
+        delegate["delegate<br>runs each role on its model"]
+        council["council<br>two providers on risky work"]
+        standards["coding-standards<br>the rules in every brief"]
+        delegate ~~~ council ~~~ standards
+    end
+    subgraph upkeep["Keeping a project healthy"]
+        direction LR
+        verification["bootstrap-verification<br>agents check their own work"]
+        correction["encode-correction<br>a correction becomes a guard"]
+        garden["garden<br>stop bad patterns spreading"]
+        modernize["modernize-pr<br>revive or close an old pull request"]
+        verification ~~~ correction ~~~ garden ~~~ modernize
+    end
+    subgraph writing["Languages and writing"]
+        direction LR
+        csharp["csharp-modernization<br>C# 9 to 15"]
+        typescript["typescript-best-practices<br>.ts and .tsx"]
+        unslop["unslop<br>cut AI tells from writing"]
+        csharp ~~~ typescript ~~~ unslop
+    end
+    orchestrate --> helpers
+    helpers ~~~ upkeep ~~~ writing
+```
+
 | Skill | What it does |
 | --- | --- |
 | [orchestrate](skills/orchestrate/SKILL.md) | Runs a plan, code, review loop: one plan with code sketches, all coding delegated to coder subagents, reviews with hard caps, verification in the running app, and a pull request. |

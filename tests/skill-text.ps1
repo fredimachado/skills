@@ -61,6 +61,25 @@ function Get-ReadmeProblem([string] $Root) {
     }
 }
 
+# README.md's diagram has a box for every skill, and no box for a skill that is gone. A
+# skill's box is written ["name"] or ["name<br>note"]; a step that is no skill is written
+# ("...") and a group's title has capitals or spaces, so neither counts as a box.
+function Get-ReadmeDiagramProblem([string] $Root) {
+    $readme = Get-Content -LiteralPath (Join-Path $Root 'README.md') -Raw
+    if ($readme -notmatch '(?s)```mermaid\r?\n(.*?)\r?\n```') {
+        'README.md: no mermaid diagram'
+        return
+    }
+    $boxes = @([regex]::Matches($Matches[1], '\["([a-z0-9-]+)(?:<br>[^"]*)?"\]') | ForEach-Object { $_.Groups[1].Value })
+    $skills = @(Get-SkillFolder $Root | ForEach-Object Name)
+    foreach ($name in $skills) {
+        if ($name -notin $boxes) { "README.md: the diagram has no box for $name" }
+    }
+    foreach ($name in $boxes) {
+        if ($name -notin $skills) { "README.md: the diagram has a box for $name, which is not a skill" }
+    }
+}
+
 # A path in backticks that starts with ../, references/ or scripts/ and names a .md, .json,
 # .ps1 or .sh file exists, relative to the file that names it or to that file's skill.
 function Get-PathReferenceProblem([string] $Root) {
@@ -142,6 +161,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     $problems = @(
         Get-SkillFrontMatterProblem $rootPath
         Get-ReadmeProblem $rootPath
+        Get-ReadmeDiagramProblem $rootPath
         Get-PathReferenceProblem $rootPath
         Get-SectionReferenceProblem $rootPath
     )
