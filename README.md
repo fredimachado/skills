@@ -48,23 +48,26 @@ flowchart TB
     helpers ~~~ upkeep ~~~ writing
 ```
 
-| Skill | What it does |
-| --- | --- |
-| [orchestrate](skills/orchestrate/SKILL.md) | Runs a plan, code, review loop: one plan with code sketches, all coding delegated to coder subagents, reviews with hard caps, verification in the running app, and a pull request. |
-| [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, checks it against a gate and has a reviewer check it against the code before any coding. |
-| [review-loop](skills/review-loop/SKILL.md) | Runs budgeted review rounds with read-only reviewer subagents, a findings ledger with stable ids, and a hard round cap. |
-| [council](skills/council/SKILL.md) | Gets two independent reviews from models of different providers on the same diff, plan or document, with a limit of two rounds. |
-| [delegate](skills/delegate/SKILL.md) | Runs a role (planner, coder, reviewer, council seat) as a subagent on the harness and model your role file assigns, natively or through another harness's CLI. |
-| [file-pr](skills/file-pr/SKILL.md) | Opens a problem-first pull request with how it was verified, what was not, deferred findings and attribution. |
-| [babysit-pr](skills/babysit-pr/SKILL.md) | Watches your pull request through CI and review, triages what arrives, and reports when it is ready, waiting for a human, or blocked. Never merges. |
-| [modernize-pr](skills/modernize-pr/SKILL.md) | Brings an old pull request up to date and says whether it should still exist: modernize, rework or close. Never merges or closes. |
-| [coding-standards](skills/coding-standards/SKILL.md) | Coding standards (First make it work, Then make it right, Practice), for writing and reviewing code and for coder briefs. |
-| [bootstrap-verification](skills/bootstrap-verification/SKILL.md) | Sets up a project-specific verification skill so agents can build, run and check an app themselves. |
-| [encode-correction](skills/encode-correction/SKILL.md) | Turns a correction of the agent into a permanent fix in the project, so the same mistake can't happen again. |
-| [garden](skills/garden/SKILL.md) | Finds workarounds, suppressions and competing patterns, checks whether they are spreading, and guards against them before cleanup. |
-| [csharp-modernization](skills/csharp-modernization/SKILL.md) | Modernizes C# code using features from C# 9 through C# 15, with guidance on language versions, runtime requirements and behavior changes. |
-| [typescript-best-practices](skills/typescript-best-practices/SKILL.md) | TypeScript best practices for reading and editing `.ts` and `.tsx` files. |
-| [unslop](skills/unslop/SKILL.md) | Cuts AI tells from any writing. |
+Each skill has a short guide in [docs/](docs) that says what it solves, how it works and
+how it connects to the others.
+
+| Skill | What it does | Guide |
+| --- | --- | --- |
+| [orchestrate](skills/orchestrate/SKILL.md) | Runs a plan, code, review loop: one plan with code sketches, all coding delegated to coder subagents, reviews with hard caps, verification in the running app, and a pull request. | [guide](docs/orchestrate.md) |
+| [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, checks it against a gate and has a reviewer check it against the code before any coding. | [guide](docs/plan.md) |
+| [review-loop](skills/review-loop/SKILL.md) | Runs budgeted review rounds with read-only reviewer subagents, a findings ledger with stable ids, and a hard round cap. | [guide](docs/review-loop.md) |
+| [council](skills/council/SKILL.md) | Gets two independent reviews from models of different providers on the same diff, plan or document, with a limit of two rounds. | [guide](docs/council.md) |
+| [delegate](skills/delegate/SKILL.md) | Runs a role (planner, coder, reviewer, council seat) as a subagent on the harness and model your role file assigns, natively or through another harness's CLI. | [guide](docs/delegate.md) |
+| [file-pr](skills/file-pr/SKILL.md) | Opens a problem-first pull request with how it was verified, what was not, deferred findings and attribution. | [guide](docs/file-pr.md) |
+| [babysit-pr](skills/babysit-pr/SKILL.md) | Watches your pull request through CI and review, triages what arrives, and reports when it is ready, waiting for a human, or blocked. Never merges. | [guide](docs/babysit-pr.md) |
+| [modernize-pr](skills/modernize-pr/SKILL.md) | Brings an old pull request up to date and says whether it should still exist: modernize, rework or close. Never merges or closes. | [guide](docs/modernize-pr.md) |
+| [coding-standards](skills/coding-standards/SKILL.md) | Coding standards (First make it work, Then make it right, Practice), for writing and reviewing code and for coder briefs. | [guide](docs/coding-standards.md) |
+| [bootstrap-verification](skills/bootstrap-verification/SKILL.md) | Sets up a project-specific verification skill so agents can build, run and check an app themselves. | [guide](docs/bootstrap-verification.md) |
+| [encode-correction](skills/encode-correction/SKILL.md) | Turns a correction of the agent into a permanent fix in the project, so the same mistake can't happen again. | [guide](docs/encode-correction.md) |
+| [garden](skills/garden/SKILL.md) | Finds workarounds, suppressions and competing patterns, checks whether they are spreading, and guards against them before cleanup. | [guide](docs/garden.md) |
+| [csharp-modernization](skills/csharp-modernization/SKILL.md) | Modernizes C# code using features from C# 9 through C# 15, with guidance on language versions, runtime requirements and behavior changes. | [guide](docs/csharp-modernization.md) |
+| [typescript-best-practices](skills/typescript-best-practices/SKILL.md) | TypeScript best practices for reading and editing `.ts` and `.tsx` files. | [guide](docs/typescript-best-practices.md) |
+| [unslop](skills/unslop/SKILL.md) | Cuts AI tells from any writing. | [guide](docs/unslop.md) |
 
 ## Install
 
@@ -96,7 +99,10 @@ Claude Code with `/model`. Cursor models carry their effort in the name
 the harness refuses, is reported as unavailable, never replaced with another model.
 
 `delegate` and `babysit-pr` come with scripts: PowerShell 7 on Windows, plain `sh` with
-`jq` on Linux and macOS (`babysit-pr` also needs `gh`).
+`jq` on Linux and macOS (`babysit-pr` also needs `gh`). `encode-correction`, `garden` and
+`bootstrap-verification` come with Python 3 scripts that use only the standard library;
+the browser driver `bootstrap-verification` can add to a project needs Playwright, and
+its terminal driver needs tmux.
 
 ## Update
 
@@ -119,9 +125,10 @@ If someone asks you to install this repository's skills:
    ~~~
 
    Drop an `-a` for a harness they don't use, or name skills with `--skill` instead of `'*'`.
-3. **Set up the roles if they installed `delegate`** (or `orchestrate`, `plan`, `council`
-   or `review-loop`, which use it). Never choose models yourself. If they have a clone and
-   a terminal, tell them to run `install.ps1 -Roles` or `install.sh --roles`. Otherwise ask
+3. **Set up the roles if they installed `delegate`** (or `orchestrate`, `plan`, `council`,
+   `review-loop` or `babysit-pr`, which use it). Never choose models yourself. If they
+   have a clone and a terminal, tell them to run `install.ps1 -Roles` or
+   `install.sh --roles`. Otherwise ask
    them, for each role (planner, coder-simple, coder-complex, reviewer, council-a,
    council-b): the harness (claude, codex or cursor); the model, offering the names listed
    for that harness in [scripts/models.txt](scripts/models.txt) or one they type exactly;
@@ -171,7 +178,10 @@ overrides, shows the result and writes it only after you confirm, keeping the pr
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the
 `.sh` scripts on Linux and macOS. `tests/skill-text.Tests.ps1` checks, on all three, that
-the skills name only files and sections that exist and that this README lists every skill.
+the skills name only files and sections that exist, that this README lists every skill in
+its table and its diagram, and that every skill has a guide in `docs/` whose links work.
+The test cannot tell whether the diagram and the guides are still true: read them again
+with every change to a skill.
 
 ## Credits
 

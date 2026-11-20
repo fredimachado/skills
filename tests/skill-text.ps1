@@ -80,6 +80,39 @@ function Get-ReadmeDiagramProblem([string] $Root) {
     }
 }
 
+# Every skill has a guide, docs/<name>.md, with the three headings every guide has, and
+# README.md links to it. Every guide is named after a skill, and its links to other files
+# resolve.
+function Get-GuideProblem([string] $Root) {
+    $docs = Join-Path $Root 'docs'
+    $readme = Get-Content -LiteralPath (Join-Path $Root 'README.md') -Raw
+    $skills = @(Get-SkillFolder $Root | ForEach-Object Name)
+    foreach ($name in $skills) {
+        $path = Join-Path $docs "$name.md"
+        if (-not (Test-Path -LiteralPath $path)) {
+            "docs/$name.md: missing"
+            continue
+        }
+        if (-not $readme.Contains("(docs/$name.md)")) { "README.md: no link to docs/$name.md" }
+        $text = Get-Content -LiteralPath $path -Raw
+        foreach ($heading in 'What it solves', 'How it works', 'How it connects') {
+            if ($text -notmatch "(?m)^## $heading\s*$") { "docs/$name.md: no heading '## $heading'" }
+        }
+    }
+    if (-not (Test-Path -LiteralPath $docs)) { return }
+    foreach ($file in Get-ChildItem -LiteralPath $docs -File -Filter '*.md') {
+        if ($file.BaseName -notin $skills) { "docs/$($file.Name): no skill is named $($file.BaseName)" }
+        $text = Get-Content -LiteralPath $file.FullName -Raw
+        foreach ($m in [regex]::Matches($text, '\]\(([^)\s#]+)(?:#[^)\s]*)?\)')) {
+            $target = $m.Groups[1].Value
+            if ($target -match '^[a-z][a-z0-9+.-]*:') { continue }
+            if (-not (Test-Path -LiteralPath (Join-Path $docs $target))) {
+                "docs/$($file.Name): link to $target, which does not exist"
+            }
+        }
+    }
+}
+
 # A path in backticks that starts with ../, references/ or scripts/ and names a .md, .json,
 # .ps1 or .sh file exists, relative to the file that names it or to that file's skill.
 function Get-PathReferenceProblem([string] $Root) {
@@ -162,6 +195,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         Get-SkillFrontMatterProblem $rootPath
         Get-ReadmeProblem $rootPath
         Get-ReadmeDiagramProblem $rootPath
+        Get-GuideProblem $rootPath
         Get-PathReferenceProblem $rootPath
         Get-SectionReferenceProblem $rootPath
     )

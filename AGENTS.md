@@ -41,5 +41,15 @@
   `tests/skill-text.Tests.ps1` checks both, and that `README.md` lists every skill in its
   table and gives it a box in its diagram. Without Pester,
   `pwsh -NoProfile -File tests/skill-text.ps1` prints the problems.
+- Every skill has a guide, `docs/<name>.md`, with the headings "What it solves", "How it
+  works" and "How it connects", written in plain words for someone who has never used the
+  skill. The same test checks that it exists, that `README.md` links to it and that its
+  links resolve.
+- With every change, read the diagram in `README.md` and the guides in `docs/` again, and
+  update them in the same commit. Read the guide of each skill you touched and of each
+  skill that names it: a new step, a changed cap, a renamed role or a new link between
+  two skills changes them. The test cannot tell whether they are still true; you can. A
+  new skill needs a box in the diagram, a row in the table and a guide. Check the rest of
+  `README.md` the same way.
 - `install` never replaces a real folder or a link that points elsewhere; keep it that way.
 - Commit to `main` as fast-forwards, with no attribution lines.

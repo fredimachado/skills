@@ -25,6 +25,10 @@ Describe 'skill texts' {
         @(Get-ReadmeDiagramProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
     }
 
+    It 'gives every skill a guide in docs/ that README.md links to, with links that work' {
+        @(Get-GuideProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
+    }
+
     It 'names only files that exist' {
         @(Get-PathReferenceProblem $RepoRoot) -join "`n" | Should -BeNullOrEmpty
     }
@@ -60,6 +64,14 @@ Good: (`two`, "Real heading") and (`notes.md`, "Lead-in").
 Bad: (`two`, "No such heading") and "Nowhere" in `references/notes.md`.
 '@
         Set-Content -LiteralPath (Join-Path $Fake 'skills/one/references/notes.md') -Value "# Notes`n`n**Lead-in.** Text."
+        New-Item -ItemType Directory -Force (Join-Path $Fake 'docs') | Out-Null
+        Set-Content -LiteralPath (Join-Path $Fake 'docs/one.md') -Value @'
+# one
+## What it solves
+## How it works
+See [the skill](../skills/one/SKILL.md), [a site](https://example.com) and [nothing](missing.md).
+'@
+        Set-Content -LiteralPath (Join-Path $Fake 'docs/stray.md') -Value '# stray'
         Set-Content -LiteralPath (Join-Path $Fake 'skills/two/SKILL.md') -Value "---`nname: other`n---`n## A real heading here`n"
     }
     AfterAll {
@@ -92,6 +104,16 @@ Bad: (`two`, "No such heading") and "Nowhere" in `references/notes.md`.
         New-Item -ItemType Directory -Force (Join-Path $bare 'skills') | Out-Null
         Set-Content -LiteralPath (Join-Path $bare 'README.md') -Value 'No diagram here.'
         @(Get-ReadmeDiagramProblem $bare) | Should -Be 'README.md: no mermaid diagram'
+    }
+
+    It 'reports a missing guide, an unlinked one, a missing heading, a dead link and a stray file' {
+        $problems = @(Get-GuideProblem $Fake)
+        $problems | Should -HaveCount 5
+        $problems -join "`n" | Should -Match 'docs/two.md: missing'
+        $problems -join "`n" | Should -Match 'README.md: no link to docs/one.md'
+        $problems -join "`n" | Should -Match "docs/one.md: no heading '## How it connects'"
+        $problems -join "`n" | Should -Match 'docs/one.md: link to missing.md, which does not exist'
+        $problems -join "`n" | Should -Match 'docs/stray.md: no skill is named stray'
     }
 
     It 'reports only the path that does not exist' {
