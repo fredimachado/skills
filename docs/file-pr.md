@@ -43,7 +43,8 @@ true.
 
 - [orchestrate](orchestrate.md) calls it when the work is reviewed and verified.
 - [council](council.md) supplies the record of its rounds for the description.
-- [delegate](delegate.md) recorded which model did each part. The attribution uses that.
+- [delegate](delegate.md) recorded which model did each part, including any fallback
+  that contributed work. The attribution uses that record.
 - [babysit-pr](babysit-pr.md) takes over after the pull request opens, if you asked for it
   to be watched.
 

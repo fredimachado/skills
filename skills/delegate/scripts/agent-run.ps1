@@ -6,7 +6,7 @@ Run one delegate on another harness's command line and report the result as one 
 .DESCRIPTION
 Start it as: pwsh -NoProfile -File <absolute path>/agent-run.ps1 ...
 stdout carries exactly one JSON object:
-  { status: ok|failed|timeout|unavailable|invalid-output, harness, model, sessionId,
+  { status: ok|failed|timeout|unavailable|invalid-output|quota-exhausted, harness, model, sessionId,
     outFile, durationSec, exitCode, error }
 Diagnostics go to stderr. The CLI's raw output is kept next to the out file as <OutFile>.log.
 Exit code: 0 when status is ok, 2 for bad arguments, 1 otherwise.
@@ -30,7 +30,8 @@ param(
     [string] $ReadDir,   # extra directories the delegate may read, separated like PATH
     [int] $TimeoutSec = 1800,
     [string] $RoleFile = (Join-Path $HOME '.agents/roles.json'),
-    [switch] $Check
+    [switch] $Check,
+    [switch] $Fallback
 )
 
 $ErrorActionPreference = 'Stop'
@@ -115,6 +116,21 @@ function Get-Field($Object, [string] $Name) {
     return $null
 }
 
+# Only inspect provider errors and failed CLI diagnostics, never successful reply text.
+function Test-QuotaMessage([string] $Message) {
+    $prefix = '^(?:Error:\s*)?'
+    $messageText = $Message.Trim()
+    $messageText -match "${prefix}You(?:'|’)ve (?:hit|reached) your (?:usage|session|5-hour|weekly|Opus|Sonnet|Fable) limit\b" -or
+        $messageText -match "${prefix}(?:You(?:'|’)ve hit your limit\s+·\s+resets|5-hour limit reached)\b" -or
+        $messageText -match "${prefix}(?:Your workspace is out of credits\.|You hit your spend cap set in your workspace\.)"
+}
+
+function Test-QuotaError($ErrorObject, [string] $Message) {
+    (Get-Field $ErrorObject 'code') -in 'usage_limit_reached', 'insufficient_quota' -or
+        (Get-Field $ErrorObject 'type') -in 'usage_limit_reached', 'insufficient_quota' -or
+        (Test-QuotaMessage $Message)
+}
+
 # ---------------------------------------------------------------- adapters
 # One adapter per CLI. Each lists the flags it uses (checked by -Check), how to tell it is
 # signed in, which models it offers, how to build a run, and how to read the result.
@@ -166,11 +182,14 @@ $Adapters = @{
                     Sort-Object { [double](Get-Field $_.Value 'outputTokens') } -Descending |
                     Select-Object -First 1 -ExpandProperty Name
             }
-            $text = [string](Get-Field $j 'result')
+            $message = [string](Get-Field $j 'result')
+            $isError = (Get-Field $j 'is_error') -eq $true
+            $text = $message
             $structured = Get-Field $j 'structured_output'
             if ($C.Schema) { $text = if ($null -ne $structured) { $structured | ConvertTo-Json -Depth 50 } else { '' } }
             @{ Text = $text; SessionId = [string](Get-Field $j 'session_id'); Model = $model
-               Error = if ((Get-Field $j 'is_error') -eq $true) { "claude reported an error: $text" } else { '' } }
+               Error = if ($isError) { "claude reported an error: $message" } else { '' }
+               Quota = $isError -and (Test-QuotaError (Get-Field $j 'error') $message) }
         }
     }
 
@@ -214,22 +233,31 @@ $Adapters = @{
         }
         Parse = {
             param($C, $R)
-            $thread = ''; $failure = ''
+            $thread = ''; $failure = ''; $quota = $false
             foreach ($line in ($R.Stdout -split "`n")) {
                 $e = ConvertFrom-JsonOrNull $line
                 if (-not $e) { continue }
                 switch (Get-Field $e 'type') {
                     'thread.started' { $thread = [string](Get-Field $e 'thread_id') }
-                    'turn.failed' { $failure = ($e | ConvertTo-Json -Compress -Depth 10) }
-                    'error' { $failure = [string](Get-Field $e 'message') }
+                    'turn.failed' {
+                        $failure = ($e | ConvertTo-Json -Compress -Depth 10)
+                        $turnError = Get-Field $e 'error'
+                        $quota = Test-QuotaError $turnError (Get-Field $turnError 'message')
+                    }
+                    'error' {
+                        $failure = [string](Get-Field $e 'message')
+                        $quota = Test-QuotaError $e $failure
+                        if ($quota -and -not $failure) { $failure = ($e | ConvertTo-Json -Compress -Depth 10) }
+                    }
+                    'turn.completed' { $quota = $false }
                 }
             }
             $text = if (Test-Path -LiteralPath $C.LastMessage) { Get-Content -LiteralPath $C.LastMessage -Raw } else { $null }
             Remove-Item -LiteralPath $C.LastMessage -ErrorAction SilentlyContinue
-            if (-not $thread -and -not $text) { return @{ Invalid = 'no session events and no final message' } }
+            if (-not $thread -and -not $text -and -not $quota) { return @{ Invalid = 'no session events and no final message' } }
             if ($null -eq $text -and -not $failure) { return @{ Invalid = 'no final message' } }
             @{ Text = [string]$text; SessionId = $(if ($thread) { $thread } else { $C.ResumeId }); Model = ''
-               Error = $(if ($failure) { "codex reported a failure: $failure" } else { '' }) }
+               Error = $(if ($failure) { "codex reported a failure: $failure" } else { '' }); Quota = $quota }
         }
     }
 
@@ -270,10 +298,13 @@ $Adapters = @{
                 if ($candidate -and (Get-Field $candidate 'type') -eq 'result') { $j = $candidate }
             }
             if (-not $j) { return @{ Invalid = 'no JSON result on stdout' } }
-            $text = [string](Get-Field $j 'result')
+            $message = [string](Get-Field $j 'result')
+            $isError = (Get-Field $j 'is_error') -eq $true
+            $text = $message
             if ($C.Schema -and $text -match '(?s)\{.*\}') { $text = $Matches[0] }
             @{ Text = $text; SessionId = [string](Get-Field $j 'session_id'); Model = ''
-               Error = if ((Get-Field $j 'is_error') -eq $true) { "cursor reported an error: $text" } else { '' } }
+               Error = if ($isError) { "cursor reported an error: $message" } else { '' }
+               Quota = $isError -and (Test-QuotaError (Get-Field $j 'error') $message) }
         }
     }
 }
@@ -315,6 +346,9 @@ if (-not $PromptFile -or -not (Test-Path -LiteralPath $PromptFile -PathType Leaf
 if (-not $OutFile) { Fail-Arguments '-OutFile is required.' }
 if ($SchemaFile -and -not (Test-Path -LiteralPath $SchemaFile -PathType Leaf)) { Fail-Arguments "-SchemaFile '$SchemaFile' does not exist." }
 if ($HostHarness -and $HostHarness -notin $Harnesses) { Fail-Arguments "-HostHarness must be one of $($Harnesses -join ', ')." }
+if ($Fallback -and (-not $Role -or $Harness -or $Model -or $Effort)) {
+    Fail-Arguments '-Fallback needs -Role and cannot be combined with -Harness, -Model or -Effort.'
+}
 $WorkDir = (Resolve-Path -LiteralPath $WorkDir).Path
 $Result.outFile = $OutFile
 
@@ -341,11 +375,16 @@ if ($Role) {
     # A host override replaces the whole role: effort levels belong to one harness.
     $entry = Get-Field (Get-Field (Get-Field $roles 'hostOverrides') $HostHarness) $Role
     if ($null -eq $entry) { $entry = Get-Field (Get-Field $roles 'roles') $Role }
-    $resolved = @{}
-    if ($null -ne $entry) { foreach ($p in $entry.PSObject.Properties) { $resolved[$p.Name] = [string]$p.Value } }
-    if (-not $Harness) { $Harness = $resolved['harness'] }
-    if (-not $Model) { $Model = $resolved['model'] }
-    if (-not $Effort) { $Effort = $resolved['effort'] }
+    if ($Fallback) {
+        $entry = Get-Field $entry 'fallback'
+        if ((Get-Field $entry 'harness') -cnotin $Harnesses -or (Get-Field $entry 'model') -isnot [string] -or
+            [string]::IsNullOrWhiteSpace((Get-Field $entry 'model'))) {
+            Complete 'unavailable' "Role '$Role' on host '$HostHarness' has no valid fallback in '$RoleFile'."
+        }
+    }
+    if (-not $Harness) { $Harness = [string](Get-Field $entry 'harness') }
+    if (-not $Model) { $Model = [string](Get-Field $entry 'model') }
+    if (-not $Effort) { $Effort = [string](Get-Field $entry 'effort') }
     $Result.harness = $Harness; $Result.model = $Model
     if (-not $Harness -or -not $Model) { Complete 'unavailable' "Role '$Role' on host '$HostHarness' has no harness and model in '$RoleFile'." }
 }
@@ -407,6 +446,17 @@ $parsed = & $adapter.Parse $context $r
 if ($parsed.ContainsKey('Model') -and $parsed.Model) { $Result.model = $parsed.Model }
 if ($parsed.ContainsKey('SessionId') -and $parsed.SessionId) { $Result.sessionId = $parsed.SessionId }
 if ($parsed.ContainsKey('Text') -and $null -ne $parsed.Text) { Set-Content -LiteralPath $OutFile -Value $parsed.Text -Encoding utf8 -NoNewline }
+
+$quota = $parsed.ContainsKey('Quota') -and $parsed.Quota
+if (-not $quota -and $r.ExitCode -ne 0 -and -not $parsed.ContainsKey('Text')) {
+    $quota = @($r.Stderr -split "`n" | Where-Object { Test-QuotaMessage $_ }).Count -gt 0
+}
+if ($quota) {
+    if ($Mode -eq 'read-only' -and $null -ne $before -and (Get-GitState $WorkDir) -ne $before) {
+        Complete 'failed' "The read-only delegate changed '$WorkDir'. Check git status there before trusting it."
+    }
+    Complete 'quota-exhausted' "$($adapter.Command) reported a usage quota limit. See '$OutFile.log'."
+}
 
 if ($r.ExitCode -ne 0) {
     $why = if ($parsed.ContainsKey('Error') -and $parsed.Error) { $parsed.Error }

@@ -19,8 +19,9 @@ confident answer.
 ## How it works
 
 1. **Check the seats.** The two reviewers are the roles `council-a` and `council-b`. They
-   must come from different providers. If they do not, or one is unavailable, the skill
-   says so and stops. One reviewer is not a council, and nothing is substituted.
+   must come from different providers. If a seat runs out of usage, its configured
+   fallback can take over if its provider still differs from the other seat's. A
+   council is complete when both seats return verdicts from different providers.
 2. **Review the same snapshot in parallel.** Both get the same commits and the same brief.
    Nothing is edited while either is still reading.
 3. **Merge the findings into one list.** A finding raised by both seats is high

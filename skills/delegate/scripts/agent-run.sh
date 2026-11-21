@@ -4,13 +4,13 @@
 #
 # Start it as: sh <absolute path>/agent-run.sh -Harness claude -Model <model> ...
 # Parameters (spelled as in agent-run.ps1, case-insensitive):
-#   -Role <role> -HostHarness claude|codex|cursor   resolve harness, model, effort from -RoleFile
+#   -Role <role> -HostHarness claude|codex|cursor [-Fallback]   resolve from -RoleFile
 #   -Harness claude|codex|cursor -Model <model> -Effort <level>
 #   -Mode read-only|write -WorkDir <dir> -PromptFile <file> -OutFile <file>
 #   -SchemaFile <file> -ResumeId <id> -ReadDir <dir:dir...> -TimeoutSec <n> (default 1800)
 #   -RoleFile <file> (default ~/.agents/roles.json) -Check
 # stdout carries exactly one JSON object:
-#   { status: ok|failed|timeout|unavailable|invalid-output, harness, model, sessionId,
+#   { status: ok|failed|timeout|unavailable|invalid-output|quota-exhausted, harness, model, sessionId,
 #     outFile, durationSec, exitCode, error }
 # Diagnostics go to stderr. The CLI's raw output is kept next to the out file as <OutFile>.log.
 # Exit code: 0 when status is ok, 2 for bad arguments, 1 otherwise.
@@ -29,7 +29,7 @@ nl='
 
 Role='' HostHarness='' Harness='' Model='' Effort='' Mode='read-only' WorkDir='' PromptFile=''
 OutFile='' SchemaFile='' ResumeId='' ReadDir='' TimeoutSec=1800 RoleFile="$HOME/.agents/roles.json"
-Check=0
+Check=0 Fallback=0
 
 # ---------------------------------------------------------------- result
 
@@ -74,6 +74,7 @@ while [ "$#" -gt 0 ]; do
     name=$(lower "$1")
     case $name in
         -check) Check=1; shift; continue ;;
+        -fallback) Fallback=1; shift; continue ;;
         -role|-hostharness|-harness|-model|-effort|-mode|-workdir|-promptfile|-outfile|-schemafile|-resumeid|-readdir|-timeoutsec|-rolefile) ;;
         *) fail_arguments "A parameter cannot be found that matches parameter name '$1'." ;;
     esac
@@ -298,9 +299,25 @@ result_object() {
     jq -cR 'fromjson? | select(type == "object" and .type == "result")' "$tmp/stdout" 2>/dev/null | tail -n 1
 }
 
-# Sets p_invalid, p_error, p_session, p_model and p_has_text; writes the text to $tmp/text.
+# Only inspect provider errors and failed CLI diagnostics, never successful reply text.
+quota_message() {
+    prefix='^[[:space:]]*(Error:[[:space:]]*)?'
+    boundary='([^[:alnum:]_]|$)'
+    grep -qiE \
+        -e "${prefix}You('|’)ve (hit|reached) your (usage|session|5-hour|weekly|Opus|Sonnet|Fable) limit${boundary}" \
+        -e "${prefix}(You('|’)ve hit your limit[[:space:]]+·[[:space:]]+resets|5-hour limit reached)${boundary}" \
+        -e "${prefix}(Your workspace is out of credits\.|You hit your spend cap set in your workspace\.)"
+}
+
+quota_error() {   # error object as JSON, diagnostic message
+    printf '%s\n' "$1" | jq -e 'objects | [.code, .type]
+        | any(. == "usage_limit_reached" or . == "insufficient_quota")' >/dev/null 2>&1 ||
+        printf '%s\n' "$2" | awk 'NF { print; exit }' | quota_message
+}
+
+# Sets p_invalid, p_error, p_session, p_model, p_quota and p_has_text; writes the text to $tmp/text.
 parse_run() {
-    p_invalid='' p_error='' p_session='' p_model='' p_has_text=0
+    p_invalid='' p_error='' p_session='' p_model='' p_has_text=0 p_quota=0
     as_text='def as_text: if . == null then "" elif type == "string" then . else tojson end; '
     case $Harness in
         claude)
@@ -319,18 +336,31 @@ parse_run() {
             p_has_text=1
             p_session=$(jq -r "$as_text"'.session_id | as_text' "$tmp/result.json")
             if [ "$(jq -r '.is_error == true' "$tmp/result.json")" = true ]; then
-                p_error="claude reported an error: $(cat "$tmp/text")"
+                message=$(jq -r "$as_text"'.result | as_text' "$tmp/result.json")
+                p_error="claude reported an error: $message"
+                if quota_error "$(jq -c '.error' "$tmp/result.json")" "$message"; then p_quota=1; fi
             fi ;;
         codex)
             thread=$(jq -rR 'fromjson? | objects | select(.type == "thread.started") | .thread_id // "" | tostring' \
                 "$tmp/stdout" 2>/dev/null | tail -n 1)
+            last_event=$(jq -cR 'fromjson? | objects
+                | select(.type == "turn.failed" or .type == "error" or .type == "turn.completed")' \
+                "$tmp/stdout" 2>/dev/null | tail -n 1)
             failure=$(jq -rR 'fromjson? | objects
                 | if .type == "turn.failed" then tojson elif .type == "error" then (.message // "" | tostring) else empty end' \
                 "$tmp/stdout" 2>/dev/null | tail -n 1)
+            if [ -n "$last_event" ]; then
+                fault=$(printf '%s\n' "$last_event" | jq -c 'if .type == "turn.failed" then .error else . end')
+                message=$(printf '%s\n' "$fault" | jq -r '.message? // "" | tostring')
+                if quota_error "$fault" "$message"; then
+                    p_quota=1
+                    failure=${failure:-$last_event}
+                fi
+            fi
             # An empty final message counts as none.
             has_message=0
             [ -s "$last_message" ] && has_message=1
-            if [ -z "$thread" ] && [ "$has_message" = 0 ]; then p_invalid='no session events and no final message'; return; fi
+            if [ -z "$thread" ] && [ "$has_message" = 0 ] && [ "$p_quota" = 0 ]; then p_invalid='no session events and no final message'; return; fi
             if [ "$has_message" = 0 ] && [ -z "$failure" ]; then p_invalid='no final message'; return; fi
             if [ "$has_message" = 1 ]; then cp "$last_message" "$tmp/text"; else : >"$tmp/text"; fi
             p_has_text=1
@@ -349,7 +379,9 @@ parse_run() {
             p_has_text=1
             p_session=$(jq -r "$as_text"'.session_id | as_text' "$tmp/result.json")
             if [ "$(jq -r '.is_error == true' "$tmp/result.json")" = true ]; then
-                p_error="cursor reported an error: $(cat "$tmp/text")"
+                message=$(jq -r "$as_text"'.result | as_text' "$tmp/result.json")
+                p_error="cursor reported an error: $message"
+                if quota_error "$(jq -c '.error' "$tmp/result.json")" "$message"; then p_quota=1; fi
             fi ;;
     esac
 }
@@ -441,6 +473,9 @@ if [ -n "$SchemaFile" ] && [ ! -f "$SchemaFile" ]; then fail_arguments "-SchemaF
 if [ -n "$HostHarness" ]; then
     case $HostHarness in claude|codex|cursor) ;; *) fail_arguments "-HostHarness must be one of claude, codex, cursor." ;; esac
 fi
+if [ "$Fallback" = 1 ] && { [ -z "$Role" ] || [ -n "$Harness$Model$Effort" ]; }; then
+    fail_arguments '-Fallback needs -Role and cannot be combined with -Harness, -Model or -Effort.'
+fi
 WorkDir=$(cd -- "$WorkDir" && pwd) || fail_arguments "-WorkDir '$WorkDir' is not a directory."
 r_outfile=$OutFile
 
@@ -474,12 +509,17 @@ if [ -n "$Role" ]; then
     [ -f "$RoleFile" ] || finish unavailable "Role file '$RoleFile' not found."
     jq -e 'type == "object"' "$RoleFile" >/dev/null 2>&1 || finish unavailable "Role file '$RoleFile' is not valid JSON."
     # A host override replaces the whole role: effort levels belong to one harness.
-    role_field() {
-        jq -r --arg host "$HostHarness" --arg role "$Role" --arg f "$1" '
+    role_entry=$(jq -c --arg host "$HostHarness" --arg role "$Role" --argjson fallback "$Fallback" '
             (try .hostOverrides[$host][$role] catch null) as $o
             | (if $o != null then $o else (try .roles[$role] catch null) end) as $e
-            | if ($e | type) == "object" and $e[$f] != null
-              then ($e[$f] | if type == "string" then . else tojson end) else "" end' "$RoleFile" 2>/dev/null
+            | if $fallback == 1 then (try $e.fallback catch null) else $e end' "$RoleFile" 2>/dev/null)
+    if [ "$Fallback" = 1 ] && ! printf '%s\n' "$role_entry" | jq -e 'objects
+        | (.harness | strings | IN("claude", "codex", "cursor")) and (.model | strings | test("\\S"))' >/dev/null 2>&1; then
+        finish unavailable "Role '$Role' on host '$HostHarness' has no valid fallback in '$RoleFile'."
+    fi
+    role_field() {
+        printf '%s\n' "$role_entry" | jq -r --arg f "$1" 'if type == "object" and .[$f] != null
+              then (.[$f] | if type == "string" then . else tojson end) else "" end'
     }
     [ -n "$Harness" ] || Harness=$(role_field harness)
     [ -n "$Model" ] || Model=$(role_field model)
@@ -560,6 +600,16 @@ parse_run
 [ -n "$p_model" ] && r_model=$p_model
 [ -n "$p_session" ] && r_session=$p_session
 [ "$p_has_text" = 1 ] && cp "$tmp/text" "$OutFile"
+
+if [ "$p_quota" = 0 ] && [ "$run_code" != 0 ] && [ "$p_has_text" = 0 ] && quota_message <"$tmp/stderr"; then
+    p_quota=1
+fi
+if [ "$p_quota" = 1 ]; then
+    if [ "$Mode" = read-only ] && [ -n "$before" ] && [ "$(git_state "$WorkDir")" != "$before" ]; then
+        finish failed "The read-only delegate changed '$WorkDir'. Check git status there before trusting it."
+    fi
+    finish quota-exhausted "$cmd reported a usage quota limit. See '$OutFile.log'."
+fi
 
 if [ "$run_code" != 0 ]; then
     if [ -n "$p_error" ]; then

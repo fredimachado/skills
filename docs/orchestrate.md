@@ -41,6 +41,7 @@ The steps:
    drives the application, then calls `review-loop`.
 6. **Fix.** Fixes go back to the coder that wrote the code. The loop has hard caps. If the
    same finding stays open for two rounds, it stops patching and rethinks the design.
+   A coder's configured usage-quota fallback takes over its worktree and later fixes.
 7. **Integrate and verify.** It merges the pieces, runs everything again and drives the
    application through the whole verification plan. Risky work gets a `council` here.
 8. **Open the pull request.** Only a reviewed and verified head is pushed, through
@@ -67,6 +68,9 @@ You choose how far it goes: `local` (nothing pushed), `open-for-review` (the def
 It does not call [bootstrap-verification](bootstrap-verification.md), but a project that
 has a `verify-<app>` skill from it gives the orchestrator a ready way to drive the
 application.
+
+If the orchestrator's own harness hits its usage cap, start a session in another
+harness and point it at the existing task file to resume.
 
 ## How to ask for it
 

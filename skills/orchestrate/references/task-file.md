@@ -86,6 +86,7 @@ back in a later round keeps its id.
 
 ## Decisions
 - <date/time> — <decision> — <why> — decided by: owner | default | orchestrator
+- <date/time> - <role> fallback - <quota signal, original selection and session, fallback selection and session> - decided by: owner configuration
 
 ## Verification
 - Verified at `<head SHA>`, in a clean checkout or worktree at that commit

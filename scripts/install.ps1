@@ -96,10 +96,10 @@ function Get-Prop($Object, [string] $Name) {
     if ($Object -is [psobject] -and $Object.PSObject.Properties[$Name]) { $Object.PSObject.Properties[$Name].Value }
 }
 # Asks for one role's harness, model and effort; returns the entry, or $null for none.
-function Read-Entry($Current, [string] $NoneMeans) {
+function Read-Entry($Current, [string] $NoneMeans, [string] $HarnessLabel = 'harness') {
     $curH = "$(Get-Prop $Current 'harness')"
     while ($true) {
-        $h = Read-Value 'harness' $curH
+        $h = Read-Value $HarnessLabel $curH
         if (-not $h -or $h -in $harnesses) { break }
         Say "  harness is claude, codex or cursor; - leaves the role $NoneMeans."
     }
@@ -133,6 +133,15 @@ function Read-Entry($Current, [string] $NoneMeans) {
     $entry
 }
 
+function Read-Role($Current, [string] $NoneMeans) {
+    $entry = Read-Entry $Current $NoneMeans
+    if ($entry) {
+        $fallback = Read-Entry (Get-Prop $Current 'fallback') 'without a fallback' 'fallback harness (optional)'
+        if ($fallback) { $entry.fallback = $fallback }
+    }
+    $entry
+}
+
 # Asks for every role, shows the result and writes it on a yes. Returns the exit code.
 function Invoke-RoleSetup {
     $doc = $null
@@ -145,20 +154,20 @@ function Invoke-RoleSetup {
     Say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
     Say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
     Say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
-    Say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable:'
-    Say 'skills stop and ask instead of picking a model.'
+    Say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable.'
+    Say 'An optional fallback runs only when the primary reaches its usage quota.'
     $oldRoles = Get-Prop $doc 'roles'
     $newRoles = [ordered]@{}
     foreach ($role in $roleNames.Keys) {
         Say ''
         Say "${role}: $($roleNames[$role])"
-        $entry = Read-Entry (Get-Prop $oldRoles $role) 'unavailable'
+        $entry = Read-Role (Get-Prop $oldRoles $role) 'unavailable'
         if ($entry) { $newRoles[$role] = $entry }
     }
 
     Say ''
-    Say 'A host override replaces a role when that harness runs the session, for example other'
-    Say 'models when Cursor is the host. Enter on an empty [] means no override for that role.'
+    Say 'A host override replaces the whole role, including its fallback, for that host.'
+    Say 'Enter at a blank harness prompt to use the default role.'
     $oldOv = Get-Prop $doc 'hostOverrides'
     $newOv = [ordered]@{}
     if ($oldOv -is [pscustomobject]) {
@@ -172,7 +181,7 @@ function Invoke-RoleSetup {
         $hostRoles = [ordered]@{}
         foreach ($role in $roleNames.Keys) {
             Say "  $role"
-            $entry = Read-Entry (Get-Prop $cur $role) 'without an override'
+            $entry = Read-Role (Get-Prop $cur $role) 'without an override'
             if ($entry) { $hostRoles[$role] = $entry }
         }
         if ($hostRoles.Count) { $newOv[$h] = $hostRoles }

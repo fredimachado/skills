@@ -51,8 +51,8 @@ session's harness and model: spawn it on the native route (`delegate`,
 "Choose the route"). You wrote the briefs and read the author's reports, so
 your own reading is not an independent review.
 
-If a reviewer role is unavailable, report the review as not done. Never
-review with another model in its place, and never treat a missing review as
+If a reviewer role cannot complete after `delegate` applies its retry or
+quota fallback rule, report the review as not done. Never treat a missing review as
 approval.
 
 Build each reviewer's brief from `references/reviewer-brief.md`: the diff

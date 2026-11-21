@@ -49,9 +49,9 @@ model it names.
   before it writes and can take 10 to 30 minutes: keep the script's default
   timeout (do not pass a smaller `-TimeoutSec`), and give your own command
   limit more than that.
-- If `delegate` reports the role unavailable, or the run fails or times out
-  after its one retry, tell the owner and stop. **Never write the plan
-  yourself in its place**: that is planning with another model.
+- If `delegate` still cannot complete the role after its retry or quota
+  fallback rule, tell the owner and stop. Keep planning with the configured
+  planner selections.
 
 Read-only planners cannot write files: the plan comes back as the
 delegate's result, and you save it as the plan file.
@@ -142,9 +142,9 @@ Once the gate passes, run `review-loop` on the plan (`../review-loop/SKILL.md`,
 | Plan review rounds | 1; `council` keeps its own limit | Start no further round on your own. |
 | Revisions per review round | 1 | Must-fix still open: stop. Show the owner the plan and the open findings. No coding. |
 
-If the reviewer is unavailable, or its run fails or times out after its one
-retry, the plan is not reviewed: tell the owner and stop. A missing review
-is never a passed review. Record the reviewer's role, harness and model, the
+If `delegate` cannot complete the review after its retry or quota fallback
+rule, tell the owner and stop. A passed review requires an actual verdict.
+Record the reviewer's role, harness and model, the
 verdict and each finding with its outcome, in the caller's task file when
 there is one.
 

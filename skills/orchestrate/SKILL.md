@@ -20,7 +20,8 @@ file assigns.
 (`../review-loop/SKILL.md`) and `council` (`../council/SKILL.md`). Every spawn
 goes through `delegate` by role; where hosts differ,
 `../delegate/references/hosts.md` says how. If `delegate` reports a role this
-work needs unavailable, stop and tell the owner. Never substitute a model.
+work needs unavailable or out of quota after applying its configured fallback
+rule, stop and tell the owner.
 
 ## Four rules that hold for the whole session
 

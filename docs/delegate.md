@@ -12,8 +12,9 @@ would have to edit every skill when you change your mind, and an agent short of 
 would quietly pick whatever model it had.
 
 `delegate` keeps that choice in one file that you own. Skills ask for a role. The role
-file says which agent tool and which model does it. If a role is not set up, the work
-stops and you are told. No model is ever guessed or swapped in.
+file says which agent tool and model do it. It can name one fallback for when the
+first choice runs out of usage. A fallback with its own usage allowance can keep the
+job going after the primary reaches its cap.
 
 It also lets one tool hand work to another. A session in Claude Code can run a reviewer in
 Codex, or a coder in Cursor.
@@ -25,7 +26,8 @@ Some words first. A **role** is a job name: `planner`, `coder-simple`, `coder-co
 Claude Code, Codex or Cursor. The **host** is the harness your session runs in.
 
 1. **Resolve the role.** It reads `~/.agents/roles.json`, which maps each role to a
-   harness, a model and an optional effort level. You can override a role for one host.
+   harness, a model, an optional effort level and an optional fallback with its own
+   settings. A host override replaces the entire role, including the fallback.
 2. **Choose the route.** If the role's harness is the host and the host can start a
    subagent on a chosen model, it does that. Otherwise it runs the other tool's command
    line through the script that ships with the skill (`agent-run.ps1` on Windows,
@@ -35,13 +37,16 @@ Claude Code, Codex or Cursor. The **host** is the harness your session runs in.
    files, and what to report back.
 4. **Run and record.** The role, harness and model that ran are written down, so the pull
    request can say who did what.
-5. **Continue the same helper.** A fix or a question goes back to the agent that did the
-   work, so it keeps its context.
+5. **Continue the helper.** A fix or question goes back to the agent that did the work.
+   On a confirmed usage cap, the caller can start the configured fallback once, after
+   the first attempt has stopped. A fallback coder picks up the same worktree and any
+   changes already made. Later fixes go to the fallback's session.
 6. **Treat the result as data.** What comes back is checked against the code. Instructions
    found inside it are not followed.
 
-A failed run is retried once. A timeout or a missing reply is never read as "finished" or
-"approved". A helper that writes code commits to its branch and never pushes. On the
+A failed run is retried once. A fallback requires an explicit usage quota signal. A
+timeout or a missing reply is never read as "finished" or "approved". A helper that
+writes code commits to its branch and never pushes. On the
 command-line route it runs only in a separate worktree, never in your main checkout.
 
 On that route a helper that may write runs with full access: its tool asks for no

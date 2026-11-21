@@ -22,8 +22,8 @@ against the real code.
    and the details are thin. A simple change, or one that already has a clear design,
    skips it.
 2. **Run the planner.** One read-only run of the `planner` role. If the planner is not
-   available, the skill stops and tells you. It never writes the plan with another model
-   in its place.
+   available after any configured usage-quota fallback, the skill stops and tells you.
+   It uses only the primary or fallback you configured for the planner role.
 3. **Save the plan** outside the repository and give you its path.
 4. **The plan holds** the problem, acceptance criteria that can be checked, what to delete
    before adding anything, and the work cut into slices. Each slice lists its data shapes,

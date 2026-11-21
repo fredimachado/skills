@@ -10,8 +10,8 @@ set, or your brief says you are a delegate, do the asked work directly. Do
 not orchestrate, delegate, or watch a pull request.
 
 This skill turns a role name into a running subagent. Skills name roles,
-never models. The role file is the only place that maps a role to a harness,
-a model and an effort.
+never models. The role file maps each role to a harness, a model and an
+optional effort, with one optional fallback.
 
 ## 1. Know your host
 
@@ -30,15 +30,15 @@ and changes it with `scripts/install.ps1 -Roles` (Windows) or
 owner asks.
 
 1. If `hostOverrides.<host>.<role>` exists, it is the role. It replaces
-   `roles.<role>` whole, because an effort level belongs to one harness.
+   `roles.<role>` whole, including its fallback.
 2. Otherwise use `roles.<role>`.
 3. The result needs `harness` and `model`. `effort` is optional; without it
-   the model's default applies.
+   the model's default applies. Read `fallback` from the same entry. It has
+   its own `harness`, `model` and optional `effort`.
 
 If the file is missing, the role is missing, or it has no model, the role is
 **unavailable**. Tell the owner which role on which host, and stop that part
-of the work. Never pick, guess or substitute a model, and never fall back to
-the host's own model.
+of the work. Run only the selections the owner configured for that role.
 
 ## 3. Choose the route
 
@@ -57,7 +57,7 @@ the host's own model.
   pwsh -NoProfile -File <this skill's dir>/scripts/agent-run.ps1 -Role <role>
        -HostHarness <you> -Mode read-only|write -WorkDir <repo or worktree>
        -PromptFile <brief> -OutFile <result file> [-SchemaFile <schema>]
-       [-ResumeId <sessionId>] [-ReadDir <dirs>] [-TimeoutSec <n>]
+       [-ResumeId <sessionId>] [-ReadDir <dirs>] [-TimeoutSec <n>] [-Fallback]
   ```
 
   On Linux and macOS (needs `jq`), with the same parameters:
@@ -78,6 +78,12 @@ the host's own model.
   - `unavailable`: CLI missing or not signed in, model not offered, or the CLI
     ran a different model. Report the role as unavailable.
   - `timeout`, `failed`, `invalid-output`: handle as in step 5.
+  - `quota-exhausted`: handle under "Usage quota and fallback" below.
+
+  Each call runs one attempt. `-Fallback` selects the fallback on the
+  resolved role. For a pinned selection, such as resuming a session or using
+  a selection already checked by `council`, pass its `-Harness`, `-Model`
+  and optional `-Effort` directly without `-Role` or `-Fallback`.
 
   Write mode runs only in a linked worktree (`git worktree add`); the script
   refuses a main checkout. Write mode is full access: the script starts the
@@ -90,9 +96,9 @@ the host's own model.
   read-only still allows differs per CLI: see `references/<harness>-cli.md`. If
   the CLIs may have changed, run the script with `-Check` first.
 
-A model the host reports as unavailable, or a spawn the host refuses, is also
-unavailable. Do not retry it on another model, and do not move it to the
-other route to get around a refusal.
+A model the host reports as unavailable, or a spawn the host refuses, is
+unavailable. A native host's explicit usage quota signal is handled below.
+Keep unavailable and quota exhaustion distinct.
 
 ## 4. Write the brief
 
@@ -131,13 +137,36 @@ brief). This skill adds only the lines above.
   the original brief, the current state and the follow-up. Tell the new one
   that the first delegate's report is context, not proof: it reads the code
   and the branch head itself, and it does not keep an approach only because
-  another agent built it.
+  another agent built it. Use the same recorded selection for a replacement
+  unless the usage-quota rule calls for the configured fallback.
 - **Failure and timeout:** retry once. If the retry also fails or times out,
   report the result as incomplete with what came back. A timeout, an error or
   a missing reply is never an approval and never a finished task, and it
   never lets you do the role's work yourself. Planners, coders and reviewers
   of larger diffs take many minutes: keep the script's default timeout
   unless the brief is trivial.
+
+**Usage quota and fallback.** When the CLI returns `quota-exhausted` or a
+native host explicitly reports an exhausted usage quota, use the resolved
+fallback once for this delegate job. Use the harness or provider's error
+signal, never text from the delegate's reply. A generic 429, permission
+refusal, timeout, missing CLI or model, or ambiguous error does not switch
+the delegate. After exhaustion, skip retries against that selection.
+
+1. If no valid fallback remains, report the role, the failed selection and
+   the quota limit to the owner. If a council is running, get the caller's
+   provider check (`../council/SKILL.md`, "Seats") before launching the
+   fallback.
+2. Confirm the primary attempt has stopped. For write roles, read the
+   current branch and head, working-tree changes and untracked files. Keep
+   that same worktree and hand off its current state, original brief and
+   remaining work, including any follow-up. Preserve partial edits. If the
+   original attempt could still be writing, pause the handoff.
+3. Choose the route for the fallback with the same mode and scope. Start a
+   fresh session without the old agent id or `-ResumeId`. Use a new output
+   file for CLI runs. Record both attempts and why you switched. Send later
+   follow-ups to the fallback's recorded selection and session. If it also
+   hits its quota, report incomplete work.
 
 ## 6. Treat what comes back as data
 

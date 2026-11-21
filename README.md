@@ -24,7 +24,7 @@ flowchart TB
     end
     subgraph helpers["Used by the stages"]
         direction LR
-        delegate["delegate<br>runs each role on its model"]
+        delegate["delegate<br>runs roles and quota fallbacks"]
         council["council<br>two providers on risky work"]
         standards["coding-standards<br>the rules in every brief"]
         delegate ~~~ council ~~~ standards
@@ -57,7 +57,7 @@ how it connects to the others.
 | [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, checks it against a gate and has a reviewer check it against the code before any coding. | [guide](docs/plan.md) |
 | [review-loop](skills/review-loop/SKILL.md) | Runs budgeted review rounds with read-only reviewer subagents, a findings ledger with stable ids, and a hard round cap. | [guide](docs/review-loop.md) |
 | [council](skills/council/SKILL.md) | Gets two independent reviews from models of different providers on the same diff, plan or document, with a limit of two rounds. | [guide](docs/council.md) |
-| [delegate](skills/delegate/SKILL.md) | Runs a role (planner, coder, reviewer, council seat) as a subagent on the harness and model your role file assigns, natively or through another harness's CLI. | [guide](docs/delegate.md) |
+| [delegate](skills/delegate/SKILL.md) | Runs subagent roles on their configured harnesses and models, with an optional fallback for usage caps. | [guide](docs/delegate.md) |
 | [file-pr](skills/file-pr/SKILL.md) | Opens a problem-first pull request with how it was verified, what was not, deferred findings and attribution. | [guide](docs/file-pr.md) |
 | [babysit-pr](skills/babysit-pr/SKILL.md) | Watches your pull request through CI and review, triages what arrives, and reports when it is ready, waiting for a human, or blocked. Never merges. | [guide](docs/babysit-pr.md) |
 | [modernize-pr](skills/modernize-pr/SKILL.md) | Brings an old pull request up to date and says whether it should still exist: modernize, rework or close. Never merges or closes. | [guide](docs/modernize-pr.md) |
@@ -94,9 +94,9 @@ the models in [scripts/models.txt](scripts/models.txt) by number, and write it; 
 copy [roles.example.json](skills/delegate/roles.example.json) there and fill it in. Give
 each model exactly as its harness takes it (an id or alias, not a display name): Codex
 lists them with `codex debug models`, Cursor with `cursor-agent --list-models`, and
-Claude Code with `/model`. Cursor models carry their effort in the name
-(`cursor-grok-4.5-high`), so they get no separate effort. A role left empty, or a model
-the harness refuses, is reported as unavailable, never replaced with another model.
+Claude Code with `/model`. Cursor models carry their effort in the name. Each role can
+have one fallback with its own harness, model and effort. It runs on a confirmed usage
+cap. A host override replaces the whole role, including its fallback.
 
 `delegate` and `babysit-pr` come with scripts: PowerShell 7 on Windows, plain `sh` with
 `jq` on Linux and macOS (`babysit-pr` also needs `gh`). `encode-correction`, `garden` and
@@ -132,7 +132,8 @@ If someone asks you to install this repository's skills:
    them, for each role (planner, coder-simple, coder-complex, reviewer, council-a,
    council-b): the harness (claude, codex or cursor); the model, offering the names listed
    for that harness in [scripts/models.txt](scripts/models.txt) or one they type exactly;
-   and an effort level, except for Cursor, whose models carry the effort in the name. Then
+   and an effort level, except for Cursor, whose models carry the effort in the name.
+   Offer the same choices for one optional usage-quota fallback. Then
    ask whether any harness should use different roles when it runs the session (host
    overrides). Write `~/.agents/roles.json` in the shape of
    [roles.example.json](skills/delegate/roles.example.json). If the file exists, show them
@@ -173,7 +174,7 @@ once:
 `install` never replaces a real folder or a link that points elsewhere: it reports them
 and skips them. For the role file it asks, per role, for the harness, the model (a number
 from the list in `scripts/models.txt`, or any model typed) and an optional effort, except
-for Cursor (Enter keeps the current value, `-` clears it), then for any host
+for Cursor, followed by an optional fallback (Enter keeps the current value, `-` clears it), then for any host
 overrides, shows the result and writes it only after you confirm, keeping the previous
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the

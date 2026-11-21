@@ -39,12 +39,19 @@ BeforeAll {
     $script:RoleFile = Join-Path $Root 'roles file.json'
     @{
         roles = @{
-            'coder-simple' = @{ harness = 'claude'; model = 'small'; effort = 'xhigh' }
+            'coder-simple' = @{
+                harness = 'claude'; model = 'small'; effort = 'xhigh'
+                fallback = @{ harness = 'codex'; model = 'm1' }
+            }
             'reviewer'     = @{}
             'council-b'    = @{ harness = 'codex'; model = 'm1'; effort = 'high' }
+            'planner'      = @{ harness = 'codex'; model = 'm2' }
         }
         hostOverrides = @{
-            cursor = @{ 'coder-simple' = @{ harness = 'cursor'; model = 'm2' } }
+            cursor = @{
+                'coder-simple' = @{ harness = 'cursor'; model = 'm2' }
+                'planner' = @{ harness = 'cursor'; model = 'm1'; fallback = @{ harness = 'claude'; model = 'm2'; effort = 'high' } }
+            }
         }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $RoleFile
 
@@ -59,7 +66,10 @@ BeforeAll {
         $sep = [IO.Path]::PathSeparator
         $path = @($PathDir, $Git) + $(if ($IsWindows) { @("$env:SystemRoot\System32") } else { @('/usr/bin', '/bin') })
         if ($JqDir) { $path += $JqDir }
-        $vars = @{ PATH = ($path -join $sep); FAKE_CLI_LOG = $log; AGENT_SKILLS_DELEGATE = $null }
+        $vars = @{
+            PATH = ($path -join $sep); FAKE_CLI_LOG = $log; AGENT_SKILLS_DELEGATE = $null
+            HOME = $Root; USERPROFILE = $Root
+        }
         foreach ($k in $Env.Keys) { $vars[$k] = $Env[$k] }
         $saved = @{}
         foreach ($k in $vars.Keys) {
@@ -299,6 +309,66 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
         It 'reports a missing role file as unavailable' {
             $r = Invoke-AgentRun @('-Role', 'reviewer', '-HostHarness', 'claude', '-RoleFile', (Join-Path $Root 'nope.json'), '-WorkDir', $Repo, '-PromptFile', $Prompt, '-OutFile', (New-OutFile))
             $r.Json.status | Should -Be 'unavailable'
+        }
+    }
+
+    Context 'quota and fallback selection' {
+        It '<H> reports quota exhaustion from the provider error' -ForEach @(@{ H = 'claude' }, @{ H = 'codex' }, @{ H = 'cursor' }) {
+            $r = Invoke-AgentRun (Base $H) -Env @{ FAKE_CLI_MODE = 'quota' }
+            $r.Json.status | Should -Be 'quota-exhausted'
+            $r.ExitCode | Should -Be 1
+            $r.Json.sessionId | Should -Be '11111111-2222-3333-4444-555555555555'
+        }
+        It 'distinguishes an explicit quota message on stderr from a generic 429' {
+            $quota = Invoke-AgentRun (Base 'cursor') -Env @{ FAKE_CLI_MODE = 'quota-stderr' }
+            $transient = Invoke-AgentRun (Base 'cursor') -Env @{ FAKE_CLI_MODE = 'transient' }
+            $quota.Json.status | Should -Be 'quota-exhausted'
+            $transient.Json.status | Should -Be 'failed'
+        }
+        It 'does not mistake a successful reply for a provider error' {
+            $r = Invoke-AgentRun (Base 'claude') -Env @{ FAKE_CLI_RESULT = "You've hit your usage limit." }
+            $r.Json.status | Should -Be 'ok'
+        }
+        It 'reports a read-only violation even when the delegate also hits quota' {
+            try {
+                $r = Invoke-AgentRun (Base 'claude') -Env @{ FAKE_CLI_MODE = 'quota-scribble' }
+                $r.Json.status | Should -Be 'failed'
+                $r.Json.error | Should -Match 'read-only'
+            } finally {
+                Remove-Item -LiteralPath (Join-Path $Repo 'scribble.txt') -ErrorAction SilentlyContinue
+            }
+        }
+        It 'reports primary quota, then runs the selected fallback as a fresh session in the same worktree' {
+            $a = @('-Role', 'coder-simple', '-HostHarness', 'codex', '-RoleFile', $RoleFile,
+                   '-Mode', 'write', '-WorkDir', $Worktree, '-PromptFile', $Prompt)
+            $partial = Join-Path $Worktree 'scribble.txt'
+            try {
+                $primary = Invoke-AgentRun ($a + @('-OutFile', (New-OutFile))) -Env @{ FAKE_CLI_MODE = 'quota-scribble' }
+                $primary.Json.status | Should -Be 'quota-exhausted'
+                @($primary.Calls | Where-Object stdin).Count | Should -Be 1
+                $fallback = Invoke-AgentRun ($a + @('-OutFile', (New-OutFile), '-Fallback'))
+                $fallback.Json.status | Should -Be 'ok'
+                $fallback.Json.harness | Should -Be 'codex'
+                $fallback.Run.cwd | Should -Be (Get-RealDir $Worktree)
+                $fallback.Run.args | Should -Not -Contain 'resume'
+                ($fallback.Run.args -join ' ') | Should -Not -Match 'effort'
+                Get-Content -LiteralPath $partial | Should -Be 'x'
+            } finally {
+                Remove-Item -LiteralPath $partial -ErrorAction SilentlyContinue
+            }
+        }
+        It 'uses the host override fallback settings, and never inherits the default role fallback' {
+            $a = @('-Role', 'planner', '-HostHarness', 'cursor', '-RoleFile', $RoleFile,
+                   '-WorkDir', $Repo, '-PromptFile', $Prompt, '-OutFile', (New-OutFile), '-Fallback')
+            $override = Invoke-AgentRun $a
+            $override.Json.status | Should -Be 'ok'
+            $override.Run.cli | Should -Be 'claude'
+            $override.Run.args | Should -Contain 'm2'
+            $override.Run.args | Should -Contain 'high'
+            $a[1] = 'coder-simple'
+            $missing = Invoke-AgentRun $a
+            $missing.Json.status | Should -Be 'unavailable'
+            $missing.Calls | Should -BeNullOrEmpty
         }
     }
 

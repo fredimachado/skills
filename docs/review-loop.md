@@ -22,6 +22,7 @@ a list of findings that survives the whole loop, and never treats silence as app
    what it must not touch, and the results of the checks the caller already ran.
 2. **Start a reviewer.** It only reads. It is a fresh agent that has seen none of the
    conversation, and where possible a different model from the one that wrote the code.
+   A confirmed usage cap can switch the role to its configured fallback.
    The caller never does the reviewer's part itself.
 3. **Read the reply.** The first line is `VERDICT: APPROVE` or `VERDICT: CHANGES`. Each
    finding has an id, a severity, a file and line, a claim and a direction for the fix.

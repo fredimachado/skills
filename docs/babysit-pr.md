@@ -45,7 +45,8 @@ its report.
 - [orchestrate](orchestrate.md) continues with it when you chose the `merge-ready` finish.
 - [review-loop](review-loop.md) supplies the rules for judging findings, and reviews any
   fix that changes behavior before it is pushed.
-- [delegate](delegate.md) starts the coders that make the fixes.
+- [delegate](delegate.md) starts the coders that make the fixes and handles their
+  configured usage-quota fallbacks.
 - [modernize-pr](modernize-pr.md) is the skill for a pull request that is months behind,
   not a few commits.
 

@@ -20,9 +20,16 @@ skill adds only what follows.
   neither is the model that wrote the code. Check the role file through
   `delegate` before round 1. If both seats resolve to the same provider, say
   so and stop: that is not a council.
-- If a seat is unavailable, report an **incomplete council**: say which seat
-  and why. Do not substitute another model, do not run one seat and call it a
-  council, and do not treat the result as approval.
+- If a seat hits its usage quota, `delegate` can use that seat's configured
+  fallback. The caller checks the fallback model's provider against the
+  other seat's assignment before launch, including a verdict already
+  collected for this round. Use the model provider, since one harness can
+  offer models from several providers. Decide and record seat switches one
+  at a time so concurrent failures cannot assign both seats to the same
+  provider. Recheck the actual models before accepting both verdicts.
+- If a seat is unavailable, a fallback has the same or an unknown provider,
+  or a seat finishes without a valid verdict, report an **incomplete
+  council** with the seat and reason. Both verdicts are required for approval.
 
 ## Running a round
 

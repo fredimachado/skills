@@ -105,10 +105,10 @@ yes_no() {   # question, default (y or n); returns 0 for yes
         *) return 1 ;;
     esac
 }
-read_entry() {   # current entry as JSON (null for none), what no harness means -> $entry ('' for none)
+read_entry() {   # current JSON entry, what no harness means, optional harness label -> $entry ('' for none)
     cur_h=$(printf '%s' "$1" | jq -r '.harness? // empty')
     while :; do
-        read_value harness "$cur_h"
+        read_value "${3:-harness}" "$cur_h"
         h=$value
         case $h in '' | claude | codex | cursor) break ;; esac
         say "  harness is claude, codex or cursor; - leaves the role $2."
@@ -151,6 +151,18 @@ read_entry() {   # current entry as JSON (null for none), what no harness means 
         '{harness: $h, model: $m} + (if $e == "" then {} else {effort: $e} end)')
 }
 
+read_role() {   # current JSON role, what no primary harness means -> $entry
+    read_entry "$1" "$2"
+    [ -n "$entry" ] || return 0
+    primary=$entry
+    read_entry "$(printf '%s' "$1" | jq -c '.fallback? // null')" 'without a fallback' 'fallback harness (optional)'
+    if [ -n "$entry" ]; then
+        entry=$(printf '%s' "$primary" | jq -c --argjson fallback "$entry" '.fallback = $fallback')
+    else
+        entry=$primary
+    fi
+}
+
 # Asks for every role, shows the result and writes it on a yes. Returns the exit code.
 role_setup() {
     if ! command -v jq >/dev/null 2>&1; then
@@ -170,21 +182,21 @@ role_setup() {
     say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
     say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
     say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
-    say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable:'
-    say 'skills stop and ask instead of picking a model.'
+    say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable.'
+    say 'An optional fallback runs only when the primary reaches its usage quota.'
     new_roles='{}'
     for role in $roles; do
         say ''
         say "$role: $(describe "$role")"
-        read_entry "$(printf '%s' "$doc" | jq -c --arg r "$role" '.roles[$r]? // null')" unavailable
+        read_role "$(printf '%s' "$doc" | jq -c --arg r "$role" '.roles[$r]? // null')" unavailable
         if [ -n "$entry" ]; then
             new_roles=$(printf '%s' "$new_roles" | jq -c --arg r "$role" --argjson e "$entry" '.[$r] = $e')
         fi
     done
 
     say ''
-    say 'A host override replaces a role when that harness runs the session, for example other'
-    say 'models when Cursor is the host. Enter on an empty [] means no override for that role.'
+    say 'A host override replaces the whole role, including its fallback, for that host.'
+    say 'Enter at a blank harness prompt to use the default role.'
     new_ov=$(printf '%s' "$doc" | jq -c '(.hostOverrides? // {}) | if type == "object"
         then with_entries(select(.key != "claude" and .key != "codex" and .key != "cursor")) else {} end')
     for host in claude codex cursor; do
@@ -196,7 +208,7 @@ role_setup() {
         host_roles='{}'
         for role in $roles; do
             say "  $role"
-            read_entry "$(printf '%s' "$cur" | jq -c --arg r "$role" '.[$r]? // null')" 'without an override'
+            read_role "$(printf '%s' "$cur" | jq -c --arg r "$role" '.[$r]? // null')" 'without an override'
             if [ -n "$entry" ]; then
                 host_roles=$(printf '%s' "$host_roles" | jq -c --arg r "$role" --argjson e "$entry" '.[$r] = $e')
             fi
