@@ -54,7 +54,7 @@ describe() {
         coder-complex) echo 'codes the hard tasks: concurrency, invariants, migrations, security' ;;
         reviewer) echo 'reviews diffs; read-only' ;;
         council-a) echo 'first of two independent reviewers' ;;
-        council-b) echo 'second reviewer; a model from a different provider than council-a' ;;
+        council-b) echo 'second reviewer; any model works, one that differs from council-a catches more' ;;
     esac
 }
 model_hint() {

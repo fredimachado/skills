@@ -1,6 +1,6 @@
 ---
 name: council
-description: Get two independent reviews from models of different providers (the council-a and council-b roles) on the same diff, plan or document, in parallel, with a hard limit of two rounds. Use when the user asks for a council, a second opinion from another model or provider, a cross-model or two-reviewer review, or when risky work (security, data loss or migration, concurrency) reaches plan's review of the plan or orchestrate's step before opening a pull request. Do not use for routine single-reviewer review (use review-loop), or when running as a delegate.
+description: Get two independent reviews (the council-a and council-b roles, on whichever models the owner assigned them) on the same diff, plan or document, in parallel, with a hard limit of two rounds. Use when the user asks for a council, a second opinion from another model or provider, a cross-model or two-reviewer review, or when risky work (security, data loss or migration, concurrency) reaches plan's review of the plan or orchestrate's step before opening a pull request. Do not use for routine single-reviewer review (use review-loop), or when running as a delegate.
 ---
 
 # Council
@@ -16,20 +16,20 @@ skill adds only what follows.
 
 ## Seats
 
-- The two seats must be models from **different providers**, and ideally
-  neither is the model that wrote the code. Check the role file through
-  `delegate` before round 1. If both seats resolve to the same provider, say
-  so and stop: that is not a council.
-- If a seat hits its usage quota, `delegate` can use that seat's configured
-  fallback. The caller checks the fallback model's provider against the
-  other seat's assignment before launch, including a verdict already
-  collected for this round. Use the model provider, since one harness can
-  offer models from several providers. Decide and record seat switches one
-  at a time so concurrent failures cannot assign both seats to the same
-  provider. Recheck the actual models before accepting both verdicts.
-- If a seat is unavailable, a fallback has the same or an unknown provider,
-  or a seat finishes without a valid verdict, report an **incomplete
-  council** with the seat and reason. Both verdicts are required for approval.
+- **The owner's role file decides both seats.** Any pair is a council: models
+  from two providers, two models on one provider or harness, or the same
+  model in both seats. Resolve both roles through `delegate` before round 1
+  and run them as assigned. Never refuse a council, and never swap or pick a
+  seat's model yourself, because the two seats match.
+- The pair decides how much agreement between the seats tells you. Models
+  from two providers share the fewest blind spots. One model in both seats
+  shares all of them, so its second run mostly catches what the first
+  skipped. Ideally neither seat is the model that wrote the code.
+- If a seat hits its usage quota, `delegate` uses that seat's configured
+  fallback. The fallback needs no check against the other seat.
+- If a seat is unavailable, or finishes without a valid verdict, report an
+  **incomplete council** with the seat and reason. Both verdicts are
+  required for approval.
 
 ## Running a round
 
@@ -42,8 +42,10 @@ skill adds only what follows.
 - **Collect both replies before changing anything.** Do not edit the
   checkout, commit, or start a coder while either seat is reviewing.
 - A round is both seats. Two rounds are four reviewer runs; round 3 makes six.
-- A finding raised by both seats is **high confidence**. A finding from one
-  seat is checked against the code before you act on it, like any finding.
+- A finding raised by both seats is **high confidence** when the seats ran
+  different models. A finding from one seat, or from two seats that ran the
+  same model, is checked against the code before you act on it, like any
+  finding.
 - Merge both seats' findings into one ledger. Keep each seat's own ids in the
   "Raised by" column, and give the merged finding one ledger id.
 - Fixes between rounds follow `review-loop`, "Triage": a coder makes them,

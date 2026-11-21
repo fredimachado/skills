@@ -50,7 +50,7 @@ $roleNames = [ordered]@{
     'coder-complex' = 'codes the hard tasks: concurrency, invariants, migrations, security'
     'reviewer'      = 'reviews diffs; read-only'
     'council-a'     = 'first of two independent reviewers'
-    'council-b'     = 'second reviewer; a model from a different provider than council-a'
+    'council-b'     = 'second reviewer; any model works, one that differs from council-a catches more'
 }
 $harnesses = 'claude', 'codex', 'cursor'
 # The models offered per harness, from models.txt ("<harness> <model>" lines) next to this script.

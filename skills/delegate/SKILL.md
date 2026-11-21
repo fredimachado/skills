@@ -81,9 +81,9 @@ of the work. Run only the selections the owner configured for that role.
   - `quota-exhausted`: handle under "Usage quota and fallback" below.
 
   Each call runs one attempt. `-Fallback` selects the fallback on the
-  resolved role. For a pinned selection, such as resuming a session or using
-  a selection already checked by `council`, pass its `-Harness`, `-Model`
-  and optional `-Effort` directly without `-Role` or `-Fallback`.
+  resolved role. For a pinned selection, such as resuming a session, pass its
+  `-Harness`, `-Model` and optional `-Effort` directly without `-Role` or
+  `-Fallback`.
 
   Write mode runs only in a linked worktree (`git worktree add`); the script
   refuses a main checkout. Write mode is full access: the script starts the
@@ -154,9 +154,7 @@ refusal, timeout, missing CLI or model, or ambiguous error does not switch
 the delegate. After exhaustion, skip retries against that selection.
 
 1. If no valid fallback remains, report the role, the failed selection and
-   the quota limit to the owner. If a council is running, get the caller's
-   provider check (`../council/SKILL.md`, "Seats") before launching the
-   fallback.
+   the quota limit to the owner.
 2. Confirm the primary attempt has stopped. For write roles, read the
    current branch and head, working-tree changes and untracked files. Keep
    that same worktree and hand off its current state, original brief and

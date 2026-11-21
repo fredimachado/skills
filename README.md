@@ -25,7 +25,7 @@ flowchart TB
     subgraph helpers["Used by the stages"]
         direction LR
         delegate["delegate<br>runs roles and quota fallbacks"]
-        council["council<br>two providers on risky work"]
+        council["council<br>two reviewers on risky work"]
         standards["coding-standards<br>the rules in every brief"]
         delegate ~~~ council ~~~ standards
     end
@@ -56,7 +56,7 @@ how it connects to the others.
 | [orchestrate](skills/orchestrate/SKILL.md) | Runs a plan, code, review loop: one plan with code sketches, all coding delegated to coder subagents, reviews with hard caps, verification in the running app, and a pull request. | [guide](docs/orchestrate.md) |
 | [plan](skills/plan/SKILL.md) | Writes one executable plan with code sketches, using the planner role, checks it against a gate and has a reviewer check it against the code before any coding. | [guide](docs/plan.md) |
 | [review-loop](skills/review-loop/SKILL.md) | Runs budgeted review rounds with read-only reviewer subagents, a findings ledger with stable ids, and a hard round cap. | [guide](docs/review-loop.md) |
-| [council](skills/council/SKILL.md) | Gets two independent reviews from models of different providers on the same diff, plan or document, with a limit of two rounds. | [guide](docs/council.md) |
+| [council](skills/council/SKILL.md) | Gets two independent reviews on the same diff, plan or document, from the two models you assign to its roles, with a limit of two rounds. | [guide](docs/council.md) |
 | [delegate](skills/delegate/SKILL.md) | Runs subagent roles on their configured harnesses and models, with an optional fallback for usage caps. | [guide](docs/delegate.md) |
 | [file-pr](skills/file-pr/SKILL.md) | Opens a problem-first pull request with how it was verified, what was not, deferred findings and attribution. | [guide](docs/file-pr.md) |
 | [babysit-pr](skills/babysit-pr/SKILL.md) | Watches your pull request through CI and review, triages what arrives, and reports when it is ready, waiting for a human, or blocked. Never merges. | [guide](docs/babysit-pr.md) |
