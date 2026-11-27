@@ -15,6 +15,10 @@
 # Diagnostics go to stderr. The CLI's raw output is kept next to the out file as <OutFile>.log.
 # Exit code: 0 when status is ok, 2 for bad arguments, 1 otherwise.
 #
+# -Role reads the role file. A coder role it leaves out (coder-mechanical, coder-simple,
+# coder-moderate, coder-complex, lowest first) runs as the next coder role above it that the
+# file has, fallback included; stderr says which. Any other missing role is unavailable.
+#
 # Needs: POSIX sh and utilities, git, jq (1.6 or later), pgrep. Paths must not contain newlines.
 # This script never chooses or substitutes a model and never handles credentials.
 # See ../SKILL.md and ../references/<harness>-cli.md.
@@ -23,6 +27,7 @@ set -u
 unset CDPATH
 GUARD=AGENT_SKILLS_DELEGATE
 HARNESSES='claude codex cursor'
+CODER_ROLES='coder-mechanical coder-simple coder-moderate coder-complex'   # lowest first
 started=$(date +%s)
 nl='
 '
@@ -508,11 +513,23 @@ if [ -n "$Role" ]; then
     [ -n "$HostHarness" ] || fail_arguments '-Role needs -HostHarness, to apply hostOverrides.'
     [ -f "$RoleFile" ] || finish unavailable "Role file '$RoleFile' not found."
     jq -e 'type == "object"' "$RoleFile" >/dev/null 2>&1 || finish unavailable "Role file '$RoleFile' is not valid JSON."
+    # A coder role the file leaves out runs as the next coder role above it that the file has.
     # A host override replaces the whole role: effort levels belong to one harness.
-    role_entry=$(jq -c --arg host "$HostHarness" --arg role "$Role" --argjson fallback "$Fallback" '
-            (try .hostOverrides[$host][$role] catch null) as $o
-            | (if $o != null then $o else (try .roles[$role] catch null) end) as $e
-            | if $fallback == 1 then (try $e.fallback catch null) else $e end' "$RoleFile" 2>/dev/null)
+    resolved=$(jq -c --arg host "$HostHarness" --arg role "$Role" --arg coders "$CODER_ROLES" '
+            . as $doc
+            | ($coders | split(" ")) as $tiers
+            | ($tiers | index($role)) as $i
+            | [ (if $i == null then [$role] else $tiers[$i:] end)[] as $n
+                | (try $doc.hostOverrides[$host][$n] catch null) as $o
+                | (if $o != null then $o else (try $doc.roles[$n] catch null) end) as $e
+                | select($e != null) | {name: $n, entry: $e} ]
+            | .[0] // {name: $role, entry: null}' "$RoleFile" 2>/dev/null)
+    role_name=$(printf '%s\n' "$resolved" | jq -r '.name')
+    if [ -n "$role_name" ] && [ "$role_name" != "$Role" ]; then
+        echo "agent-run: role '$Role' is not in '$RoleFile'; running it as '$role_name'." >&2
+    fi
+    role_entry=$(printf '%s\n' "$resolved" | jq -c --argjson fallback "$Fallback" '
+            if $fallback == 1 then (try .entry.fallback catch null) else .entry end')
     if [ "$Fallback" = 1 ] && ! printf '%s\n' "$role_entry" | jq -e 'objects
         | (.harness | strings | IN("claude", "codex", "cursor")) and (.model | strings | test("\\S"))' >/dev/null 2>&1; then
         finish unavailable "Role '$Role' on host '$HostHarness' has no valid fallback in '$RoleFile'."

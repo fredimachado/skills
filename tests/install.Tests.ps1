@@ -175,8 +175,11 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
                 'y'                                  # set it up now
                 'claude', 'model-a', 'high'          # planner
                 'cursor', 'model-backup'             # planner fallback
+                'bogus', ''                          # coder-mechanical: left to the next coder role
                 'codex', '', 'model-b', ''           # coder-simple: the model is asked again until given
                 ''                                   # no coder-simple fallback
+                'claude', 'model-m', ''              # coder-moderate
+                ''                                   # no coder-moderate fallback
                 ''                                   # coder-complex: left unavailable
                 'bogus', 'cursor', 'model-c'         # reviewer: an unknown harness is asked again; cursor asks no effort
                 ''                                   # no reviewer fallback
@@ -185,22 +188,26 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
                 'codex', '99', '1', 'high'           # council-b: a number off the list is asked again
                 ''                                   # no council-b fallback
                 '', 'n', 'y'                         # overrides: none for claude or codex; cursor has one
-                '', 'cursor', 'model-f', 'claude', 'model-host-backup', 'high', '', '', '', ''
+                '', ''                               # cursor: no planner, no coder-mechanical
+                'cursor', 'model-f', 'claude', 'model-host-backup', 'high'   # coder-simple and its fallback
+                '', '', '', '', ''                   # the other five: none
                 ''                                   # write it
             )
             $r = Invoke-Install $Kind @($t) -HomeDir $h -Answers $answers -Ask
             $r.Code | Should -Be 0
-            $r.Text | Should -Match 'harness is claude, codex or cursor'
+            $r.Text | Should -Match 'harness is claude, codex or cursor; - leaves the role to the next coder role\.'
+            $r.Text | Should -Match 'harness is claude, codex or cursor; - leaves the role unavailable\.'
             $r.Text | Should -Match 'a model is needed'
             $r.Text | Should -Match 'codex debug models'
             $r.Text | Should -Match 'there is no 99 in the list'
             # Piped answers are not echoed, so the menu starts on the harness question's line.
             $r.Text | Should -Match ("\s1\) $([regex]::Escape($Menu.cursor[0]))\s+2\) $([regex]::Escape($Menu.cursor[1]))\s+3\) ")
-            ([regex]::Matches($r.Text, 'effort \(optional\)')).Count | Should -Be 5
+            ([regex]::Matches($r.Text, 'effort \(optional\)')).Count | Should -Be 6
             Get-LinkTarget (Join-Path $t 'plan') | Should -Be (Join-Path $SkillsDir 'plan')
             $doc = Read-RoleFile $h
             $doc['$comment'] | Should -Match ([regex]::Escape($RolesFlag[$Kind]))
-            @($doc.roles.Keys) | Should -Be @('planner', 'coder-simple', 'reviewer', 'council-a', 'council-b')
+            @($doc.roles.Keys) | Should -Be @('planner', 'coder-simple', 'coder-moderate', 'reviewer', 'council-a', 'council-b')
+            "$($doc.roles['coder-moderate'].harness)/$($doc.roles['coder-moderate'].model)" | Should -Be 'claude/model-m'
             $doc.roles.planner | Should -BeOfType [System.Collections.IDictionary]
             "$($doc.roles.planner.harness)/$($doc.roles.planner.model)/$($doc.roles.planner.effort)" | Should -Be 'claude/model-a/high'
             "$($doc.roles.planner.fallback.harness)/$($doc.roles.planner.fallback.model)" | Should -Be 'cursor/model-backup'
@@ -249,8 +256,10 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             $answers = @(
                 'codex', 'model-z', ''               # planner: a new harness offers no old model or effort
                 '', ''                               # keep planner fallback
+                ''                                   # coder-mechanical: new to this file, left out
                 '', '', ''                           # coder-simple: kept
                 '-'                                  # clear coder-simple fallback
+                ''                                   # coder-moderate: new to this file, left out
                 '', '', ''                           # coder-complex: kept
                 ''                                   # no coder-complex fallback
                 '', ''                               # reviewer: cursor asks no effort, so the old one goes
@@ -259,7 +268,7 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
                 ''                                   # no council-a fallback
                 '-'                                  # council-b: cleared
                 '', '', ''                           # overrides: none for claude or codex; cursor kept (default yes)
-                '', '', '', '', '', '', '', ''       # cursor: planner none, coder-simple kept with no fallback, the rest none
+                '', '', '', '', '', '', '', '', '', ''   # cursor: coder-simple kept (three answers) with no fallback, the other seven none
                 ''                                   # write it
             )
             $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers $answers -Ask
@@ -286,7 +295,7 @@ Describe 'install.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
             $h = New-Target
             New-Item -ItemType Directory (Split-Path (Get-RoleFile $h)) | Out-Null
             Set-Content -LiteralPath (Get-RoleFile $h) -Value '{"roles":{}}' -NoNewline
-            $answers = @('claude', 'model-a', '', '') + @('') * 5 + @('', '', '') + @('n')
+            $answers = @('claude', 'model-a', '', '') + @('') * 7 + @('', '', '') + @('n')
             $r = Invoke-Install $Kind @($RolesFlag[$Kind]) -HomeDir $h -Answers $answers -Ask
             $r.Code | Should -Be 0
             $r.Text | Should -Match 'Not written'

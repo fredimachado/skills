@@ -46,7 +46,7 @@ You are its only writer. Write each entry when it happens, not at the end.
 - Could not run here: <check and why> (or "nothing")
 
 ## Tasks
-- [ ] T1 — <task> · complexity: low|medium|complex · role: coder-simple → <harness>/<model>/<effort> · agent: <id>
+- [ ] T1 — <task> · role: coder-mechanical|coder-simple|coder-moderate|coder-complex (ran as <coder role>, when the role file left it out) → <harness>/<model>/<effort> · agent: <id>
 - [ ] T2 — <task> · depends on T1 · ...
 
 ## Plan gate

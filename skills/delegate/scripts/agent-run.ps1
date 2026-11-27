@@ -11,6 +11,10 @@ stdout carries exactly one JSON object:
 Diagnostics go to stderr. The CLI's raw output is kept next to the out file as <OutFile>.log.
 Exit code: 0 when status is ok, 2 for bad arguments, 1 otherwise.
 
+-Role reads the role file. A coder role it leaves out (coder-mechanical, coder-simple,
+coder-moderate, coder-complex, lowest first) runs as the next coder role above it that the
+file has, fallback included; stderr says which. Any other missing role is unavailable.
+
 This script never chooses or substitutes a model and never handles credentials.
 See ../SKILL.md and ../references/<harness>-cli.md.
 #>
@@ -38,6 +42,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 $GuardVariable = 'AGENT_SKILLS_DELEGATE'
 $Harnesses = 'claude', 'codex', 'cursor'
+$CoderRoles = 'coder-mechanical', 'coder-simple', 'coder-moderate', 'coder-complex'   # lowest first
 $clock = [Diagnostics.Stopwatch]::StartNew()
 
 # ---------------------------------------------------------------- result
@@ -372,9 +377,18 @@ if ($Role) {
     if (-not (Test-Path -LiteralPath $RoleFile)) { Complete 'unavailable' "Role file '$RoleFile' not found." }
     $roles = ConvertFrom-JsonOrNull (Get-Content -LiteralPath $RoleFile -Raw)
     if (-not $roles) { Complete 'unavailable' "Role file '$RoleFile' is not valid JSON." }
-    # A host override replaces the whole role: effort levels belong to one harness.
-    $entry = Get-Field (Get-Field (Get-Field $roles 'hostOverrides') $HostHarness) $Role
-    if ($null -eq $entry) { $entry = Get-Field (Get-Field $roles 'roles') $Role }
+    # A coder role the file leaves out runs as the next coder role above it that the file has.
+    $tier = [array]::IndexOf($CoderRoles, $Role)
+    $names = @(if ($tier -ge 0) { $CoderRoles[$tier..($CoderRoles.Count - 1)] } else { $Role })
+    $entry = $null
+    foreach ($name in $names) {
+        # A host override replaces the whole role: effort levels belong to one harness.
+        $entry = Get-Field (Get-Field (Get-Field $roles 'hostOverrides') $HostHarness) $name
+        if ($null -eq $entry) { $entry = Get-Field (Get-Field $roles 'roles') $name }
+        if ($null -eq $entry) { continue }
+        if ($name -ne $Role) { [Console]::Error.WriteLine("agent-run: role '$Role' is not in '$RoleFile'; running it as '$name'.") }
+        break
+    }
     if ($Fallback) {
         $entry = Get-Field $entry 'fallback'
         if ((Get-Field $entry 'harness') -cnotin $Harnesses -or (Get-Field $entry 'model') -isnot [string] -or

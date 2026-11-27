@@ -122,18 +122,26 @@ The pull request can then show before and after.
 
 ### 4. Delegate
 
-Choose the role by the complexity of the task as briefed:
+Choose the role by the complexity of the task as briefed. Read the table
+from the bottom row up and take the first row with a sign that fits. In
+doubt between two roles, take the one further down the table.
 
 | Role | Typical signs |
 |---|---|
+| `coder-mechanical` | The sketch is nearly the change: a rename, a config value, the same edit repeated, a test copied from an existing one. No decision is left to the coder, and build and tests alone prove it |
 | `coder-simple` | The sketch pins down data shapes and control flow; few files; follows a pattern already in the codebase; no new invariants; API unchanged |
+| `coder-moderate` | The sketch settles the design and leaves local choices: several modules, a pattern new to the codebase, an addition to an API, new error paths. No sign from the row below |
 | `coder-complex` | Concurrency or shared state, subtle invariants, migration, cross-cutting refactors, security-sensitive logic, API redesign, an ambiguous root cause, or design the sketch cannot fully settle |
 
 A good sketch lowers complexity. Split a complex task along a natural seam,
-not just to reach a cheaper role. Write the brief per `references/brief.md`,
-spawn through `delegate`, and record role, harness, model and agent id. Coders
-commit to their own worktree branch when parallel and to the feature branch
-when sequential; they never push.
+not just to reach a cheaper role. You choose by these signs alone, never by
+which models the role file has: a coder role the owner left out runs as the
+next one above it, and `delegate` resolves that.
+
+Write the brief per `references/brief.md`, spawn through `delegate`, and
+record role, harness, model and agent id. Coders commit to their own worktree
+branch when parallel and to the feature branch when sequential; they never
+push.
 
 ### 5. Review
 
@@ -152,7 +160,7 @@ cap. These caps are yours:
 | Cap | Default | At the cap |
 |---|---|---|
 | Review rounds per feature | 2 × number of tasks | Must-fix open: stop, not ready. Only should-fix: defer and record. |
-| Same finding id or invariant open | 2 rounds | Stop fixing. Name the failing assumption, then rewrite the sketch, re-slice, or move to `coder-complex`. Record which. |
+| Same finding id or invariant open | 2 rounds | Stop fixing. Name the failing assumption, then rewrite the sketch, re-slice, or move to the next coder role up. Record which. |
 
 Reaching a cap is never approval. A timeout or a missing reply is never
 approval.

@@ -45,13 +45,17 @@ $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $skillsDir = Join-Path $repo 'skills'
 $roleFile = Join-Path $HOME '.agents/roles.json'
 $roleNames = [ordered]@{
-    'planner'       = 'writes the plan; read-only'
-    'coder-simple'  = 'codes tasks the plan pins down: few files, an existing pattern'
-    'coder-complex' = 'codes the hard tasks: concurrency, invariants, migrations, security'
-    'reviewer'      = 'reviews diffs; read-only'
-    'council-a'     = 'first of two independent reviewers'
-    'council-b'     = 'second reviewer; any model works, one that differs from council-a catches more'
+    'planner'          = 'writes the plan; read-only'
+    'coder-mechanical' = 'codes tasks with no decision left: a rename, a config value, a repeated edit'
+    'coder-simple'     = 'codes tasks the plan pins down: few files, an existing pattern'
+    'coder-moderate'   = 'codes tasks that leave local choices: several modules, a new pattern, an API addition'
+    'coder-complex'    = 'codes the hard tasks: concurrency, invariants, migrations, security'
+    'reviewer'         = 'reviews diffs; read-only'
+    'council-a'        = 'first of two independent reviewers'
+    'council-b'        = 'second reviewer; any model works, one that differs from council-a catches more'
 }
+# A coder role left without a harness runs as the next coder role above it; the top one has none above.
+$inheritingRoles = 'coder-mechanical', 'coder-simple', 'coder-moderate'
 $harnesses = 'claude', 'codex', 'cursor'
 # The models offered per harness, from models.txt ("<harness> <model>" lines) next to this script.
 $models = @{}
@@ -154,14 +158,15 @@ function Invoke-RoleSetup {
     Say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
     Say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
     Say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
-    Say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable.'
+    Say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable,'
+    Say 'except a coder role: it runs as the next coder role below it in this list that has one.'
     Say 'An optional fallback runs only when the primary reaches its usage quota.'
     $oldRoles = Get-Prop $doc 'roles'
     $newRoles = [ordered]@{}
     foreach ($role in $roleNames.Keys) {
         Say ''
         Say "${role}: $($roleNames[$role])"
-        $entry = Read-Role (Get-Prop $oldRoles $role) 'unavailable'
+        $entry = Read-Role (Get-Prop $oldRoles $role) $(if ($role -in $inheritingRoles) { 'to the next coder role' } else { 'unavailable' })
         if ($entry) { $newRoles[$role] = $entry }
     }
 

@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Run a role (planner, coder-simple, coder-complex, reviewer, council-a, council-b) as a subagent on the harness and model the owner's role file assigns, then continue or collect it. Use when another skill (such as orchestrate) needs work done by a role, or when the user asks to hand a task to a coder, reviewer or planner subagent on a configured model. Do not use to pick a model yourself, and do not use when running as a delegate.
+description: Run a role (planner, coder-mechanical, coder-simple, coder-moderate, coder-complex, reviewer, council-a, council-b) as a subagent on the harness and model the owner's role file assigns, then continue or collect it. Use when another skill (such as orchestrate) needs work done by a role, or when the user asks to hand a task to a coder, reviewer or planner subagent on a configured model. Do not use to pick a model yourself, and do not use when running as a delegate.
 ---
 
 # Delegate
@@ -32,13 +32,22 @@ owner asks.
 1. If `hostOverrides.<host>.<role>` exists, it is the role. It replaces
    `roles.<role>` whole, including its fallback.
 2. Otherwise use `roles.<role>`.
-3. The result needs `harness` and `model`. `effort` is optional; without it
+3. **Coder roles only.** They are four, lowest first: `coder-mechanical`,
+   `coder-simple`, `coder-moderate`, `coder-complex`. If steps 1 and 2 find
+   no entry for a coder role, repeat them for the next coder role above it,
+   and so on up to `coder-complex`. The first entry found is the role, with
+   its fallback. Never go down: a lower role's model was not chosen for
+   harder work. An entry that exists but lacks a model does not pass the
+   work up; it is unavailable.
+4. The result needs `harness` and `model`. `effort` is optional; without it
    the model's default applies. Read `fallback` from the same entry. It has
    its own `harness`, `model` and optional `effort`.
 
-If the file is missing, the role is missing, or it has no model, the role is
+If the file is missing, the role is missing (for a coder role: with no
+coder role above it either), or it has no model, the role is
 **unavailable**. Tell the owner which role on which host, and stop that part
-of the work. Run only the selections the owner configured for that role.
+of the work. Run only the selections the owner configured: for that role, or
+for the coder role step 3 found.
 
 ## 3. Choose the route
 
@@ -80,10 +89,11 @@ of the work. Run only the selections the owner configured for that role.
   - `timeout`, `failed`, `invalid-output`: handle as in step 5.
   - `quota-exhausted`: handle under "Usage quota and fallback" below.
 
-  Each call runs one attempt. `-Fallback` selects the fallback on the
-  resolved role. For a pinned selection, such as resuming a session, pass its
-  `-Harness`, `-Model` and optional `-Effort` directly without `-Role` or
-  `-Fallback`.
+  Each call runs one attempt. The script applies step 2's rules itself,
+  the coder rule included, and says on stderr when a coder role ran as a
+  higher one. `-Fallback` selects the fallback on the resolved role. For a
+  pinned selection, such as resuming a session, pass its `-Harness`,
+  `-Model` and optional `-Effort` directly without `-Role` or `-Fallback`.
 
   Write mode runs only in a linked worktree (`git worktree add`); the script
   refuses a main checkout. Write mode is full access: the script starts the
@@ -125,7 +135,8 @@ brief). This skill adds only the lines above.
 ## 5. Run, record, continue
 
 - Record in the caller's task file: role, harness, model, effort as resolved,
-  the agent id or `sessionId`, and the route (native or CLI). On the CLI
+  the agent id or `sessionId`, and the route (native or CLI). When a coder
+  role ran as a higher one, record both names. On the CLI
   route, record the `model` the script reported; pull request attribution
   uses it.
 - Wait the way `hosts.md` says for the host. Do not poll and do not sleep in

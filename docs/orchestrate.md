@@ -35,12 +35,18 @@ The steps:
 3. **Take a baseline.** It runs the build, tests and linters before any change. A check
    that already fails is recorded, so nobody blames the new work for it. For a bug fix it
    reproduces the bug first.
-4. **Delegate.** It picks a coder role for each task: `coder-simple` when the sketch
-   settles the design, `coder-complex` for concurrency, migrations and other hard cases.
+4. **Delegate.** It picks one of four coder roles for each task, by signs it can check:
+   `coder-mechanical` when the sketch is nearly the change itself, `coder-simple` when
+   the sketch settles the design and the task follows an existing pattern,
+   `coder-moderate` when the coder still makes local choices across several modules, and
+   `coder-complex` for concurrency, migrations and other hard cases. In doubt it takes
+   the higher role. You can give each role its own model, or fewer: see
+   [delegate](delegate.md).
 5. **Review.** It runs the checks itself, confirms the new tests fail without the change,
    drives the application, then calls `review-loop`.
 6. **Fix.** Fixes go back to the coder that wrote the code. The loop has hard caps. If the
-   same finding stays open for two rounds, it stops patching and rethinks the design.
+   same finding stays open for two rounds, it stops patching and rethinks the design
+   or moves the task one coder role up.
    A coder's configured usage-quota fallback takes over its worktree and later fixes.
 7. **Integrate and verify.** It merges the pieces, runs everything again and drives the
    application through the whole verification plan. Risky work gets a `council` here.

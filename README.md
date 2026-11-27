@@ -96,7 +96,9 @@ each model exactly as its harness takes it (an id or alias, not a display name):
 lists them with `codex debug models`, Cursor with `cursor-agent --list-models`, and
 Claude Code with `/model`. Cursor models carry their effort in the name. Each role can
 have one fallback with its own harness, model and effort. It runs on a confirmed usage
-cap. A host override replaces the whole role, including its fallback.
+cap. A host override replaces the whole role, including its fallback. There are four coder
+roles, from `coder-mechanical` up to `coder-complex`, so each level of difficulty can have
+its own model; one you leave out runs on the next coder role above it.
 
 `delegate` and `babysit-pr` come with scripts: PowerShell 7 on Windows, plain `sh` with
 `jq` on Linux and macOS (`babysit-pr` also needs `gh`). `encode-correction`, `garden` and
@@ -129,8 +131,9 @@ If someone asks you to install this repository's skills:
    `review-loop` or `babysit-pr`, which use it). Never choose models yourself. If they
    have a clone and a terminal, tell them to run `install.ps1 -Roles` or
    `install.sh --roles`. Otherwise ask
-   them, for each role (planner, coder-simple, coder-complex, reviewer, council-a,
-   council-b): the harness (claude, codex or cursor); the model, offering the names listed
+   them, for each role (planner, coder-mechanical, coder-simple, coder-moderate,
+   coder-complex, reviewer, council-a, council-b; a coder role they skip runs on the next
+   coder role above it): the harness (claude, codex or cursor); the model, offering the names listed
    for that harness in [scripts/models.txt](scripts/models.txt) or one they type exactly;
    and an effort level, except for Cursor, whose models carry the effort in the name.
    Offer the same choices for one optional usage-quota fallback. Then
@@ -174,7 +177,8 @@ once:
 `install` never replaces a real folder or a link that points elsewhere: it reports them
 and skips them. For the role file it asks, per role, for the harness, the model (a number
 from the list in `scripts/models.txt`, or any model typed) and an optional effort, except
-for Cursor, followed by an optional fallback (Enter keeps the current value, `-` clears it), then for any host
+for Cursor, followed by an optional fallback (Enter keeps the current value, `-` clears it;
+a coder role left without a harness runs on the next coder role above it), then for any host
 overrides, shows the result and writes it only after you confirm, keeping the previous
 version as `roles.json.bak`. The `.sh` version needs `jq` for this. `sync-apm` offers to
 install APM when it is missing, showing the command first. Tests are in `tests/` (Pester 5): the `.ps1` scripts are tested on Windows and the

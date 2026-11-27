@@ -43,6 +43,7 @@ BeforeAll {
                 harness = 'claude'; model = 'small'; effort = 'xhigh'
                 fallback = @{ harness = 'codex'; model = 'm1' }
             }
+            'coder-complex' = @{ harness = 'codex'; model = 'm2' }
             'reviewer'     = @{}
             'council-b'    = @{ harness = 'codex'; model = 'm1'; effort = 'high' }
             'planner'      = @{ harness = 'codex'; model = 'm2' }
@@ -309,6 +310,67 @@ Describe 'agent-run.<Kind>' -ForEach @(@{ Kind = 'ps1' }, @{ Kind = 'sh' }) {
         It 'reports a missing role file as unavailable' {
             $r = Invoke-AgentRun @('-Role', 'reviewer', '-HostHarness', 'claude', '-RoleFile', (Join-Path $Root 'nope.json'), '-WorkDir', $Repo, '-PromptFile', $Prompt, '-OutFile', (New-OutFile))
             $r.Json.status | Should -Be 'unavailable'
+        }
+    }
+
+    Context 'coder roles the role file leaves out' {
+        BeforeAll {
+            function script:Invoke-Role([string] $Role, [string] $HostHarness, [string] $File = $RoleFile, [string[]] $More = @()) {
+                Invoke-AgentRun (@('-Role', $Role, '-HostHarness', $HostHarness, '-RoleFile', $File, '-WorkDir', $Repo,
+                                   '-PromptFile', $Prompt, '-OutFile', (New-OutFile)) + $More)
+            }
+        }
+        It 'run as the next coder role above that the file has, and stderr says which' {
+            $r = Invoke-Role 'coder-mechanical' 'claude'
+            $r.Json.status | Should -Be 'ok'
+            $r.Json.harness | Should -Be 'claude'
+            $r.Run.args | Should -Contain 'small'
+            $r.Run.args | Should -Contain 'xhigh'
+            Get-Content -LiteralPath (Join-Path $Root 'stderr.txt') -Raw | Should -Match "'coder-mechanical' is not in .*running it as 'coder-simple'"
+            $r = Invoke-Role 'coder-moderate' 'claude'
+            $r.Json.status | Should -Be 'ok'
+            $r.Json.harness | Should -Be 'codex'
+            $r.Run.args | Should -Contain 'm2'
+        }
+        It 'a role the file has runs as itself, with no note' {
+            $r = Invoke-Role 'coder-simple' 'claude'
+            $r.Run.args | Should -Contain 'small'
+            Get-Content -LiteralPath (Join-Path $Root 'stderr.txt') -Raw | Should -Not -Match 'running it as'
+        }
+        It 'take the host override of the role above before any default role' {
+            $r = Invoke-Role 'coder-mechanical' 'cursor'
+            $r.Json.harness | Should -Be 'cursor'
+            $r.Run.args | Should -Contain 'm2'
+        }
+        It 'take the fallback of the role they ran as' {
+            $r = Invoke-Role 'coder-mechanical' 'codex' -More @('-Fallback')
+            $r.Json.status | Should -Be 'ok'
+            $r.Run.cli | Should -Be 'codex'
+            $r.Run.args | Should -Contain 'm1'
+        }
+        It 'never run as a lower coder role, and an entry without a model does not pass the work up' {
+            $file = Join-Path $Root 'low roles.json'
+            @{ roles = @{
+                'coder-mechanical' = @{}
+                'coder-simple' = @{ harness = 'claude'; model = 'small' }
+                'coder-complex' = @{ harness = 'codex'; model = 'm2' }
+            } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $file
+            $r = Invoke-Role 'coder-mechanical' 'claude' $file
+            $r.Json.status | Should -Be 'unavailable'
+            $r.Calls | Should -BeNullOrEmpty
+            @{ roles = @{ 'coder-simple' = @{ harness = 'claude'; model = 'small' } } } |
+                ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $file
+            foreach ($role in 'coder-moderate', 'coder-complex') {
+                $r = Invoke-Role $role 'claude' $file
+                $r.Json.status | Should -Be 'unavailable'
+                $r.Json.error | Should -Match $role
+                $r.Calls | Should -BeNullOrEmpty
+            }
+        }
+        It 'no other role runs as a coder role' {
+            $r = Invoke-Role 'council-a' 'claude'
+            $r.Json.status | Should -Be 'unavailable'
+            $r.Calls | Should -BeNullOrEmpty
         }
     }
 

@@ -33,7 +33,7 @@ set -u
 here=$(cd "$(dirname "$0")" && pwd -P)
 skills_dir=$(cd "$here/../skills" && pwd -P)
 role_file="$HOME/.agents/roles.json"
-roles='planner coder-simple coder-complex reviewer council-a council-b'
+roles='planner coder-mechanical coder-simple coder-moderate coder-complex reviewer council-a council-b'
 new_comment='Role file for the delegate skill. install.ps1 -Roles (Windows) or install.sh --roles (Linux, macOS) asks again to change it; the shape is in skills/delegate/roles.example.json.'
 
 roles_only=false
@@ -50,11 +50,20 @@ say() { printf '%s\n' "$*"; }
 describe() {
     case $1 in
         planner) echo 'writes the plan; read-only' ;;
+        coder-mechanical) echo 'codes tasks with no decision left: a rename, a config value, a repeated edit' ;;
         coder-simple) echo 'codes tasks the plan pins down: few files, an existing pattern' ;;
+        coder-moderate) echo 'codes tasks that leave local choices: several modules, a new pattern, an API addition' ;;
         coder-complex) echo 'codes the hard tasks: concurrency, invariants, migrations, security' ;;
         reviewer) echo 'reviews diffs; read-only' ;;
         council-a) echo 'first of two independent reviewers' ;;
         council-b) echo 'second reviewer; any model works, one that differs from council-a catches more' ;;
+    esac
+}
+# A coder role left without a harness runs as the next coder role above it; the top one has none above.
+none_means() {
+    case $1 in
+        coder-mechanical | coder-simple | coder-moderate) echo 'to the next coder role' ;;
+        *) echo unavailable ;;
     esac
 }
 model_hint() {
@@ -182,13 +191,14 @@ role_setup() {
     say 'For each role: the harness (claude, codex or cursor), the model (pick one from the list,'
     say 'or type it exactly as that harness takes it: nothing translates a display name), and an'
     say 'effort level if you want one (not for cursor: its models carry the effort in the name).'
-    say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable.'
+    say 'Enter keeps the value in [brackets]; - clears it. A role with no harness is unavailable,'
+    say 'except a coder role: it runs as the next coder role below it in this list that has one.'
     say 'An optional fallback runs only when the primary reaches its usage quota.'
     new_roles='{}'
     for role in $roles; do
         say ''
         say "$role: $(describe "$role")"
-        read_role "$(printf '%s' "$doc" | jq -c --arg r "$role" '.roles[$r]? // null')" unavailable
+        read_role "$(printf '%s' "$doc" | jq -c --arg r "$role" '.roles[$r]? // null')" "$(none_means "$role")"
         if [ -n "$entry" ]; then
             new_roles=$(printf '%s' "$new_roles" | jq -c --arg r "$role" --argjson e "$entry" '.[$r] = $e')
         fi

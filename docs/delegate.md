@@ -21,13 +21,19 @@ Codex, or a coder in Cursor.
 
 ## How it works
 
-Some words first. A **role** is a job name: `planner`, `coder-simple`, `coder-complex`,
-`reviewer`, `council-a`, `council-b`. A **harness** is the agent tool that runs a model:
-Claude Code, Codex or Cursor. The **host** is the harness your session runs in.
+Some words first. A **role** is a job name: `planner`, `reviewer`, `council-a`,
+`council-b`, and four coder roles, from the easiest work to the hardest:
+`coder-mechanical`, `coder-simple`, `coder-moderate`, `coder-complex`. A **harness** is
+the agent tool that runs a model: Claude Code, Codex or Cursor. The **host** is the
+harness your session runs in.
 
 1. **Resolve the role.** It reads `~/.agents/roles.json`, which maps each role to a
    harness, a model, an optional effort level and an optional fallback with its own
-   settings. A host override replaces the entire role, including the fallback.
+   settings. A host override replaces the entire role, including the fallback. You do
+   not have to fill in all four coder roles: one you leave out runs on the next coder
+   role above it that you did fill in, never on a lower one. A file with only
+   `coder-simple` and `coder-complex` keeps working, with mechanical tasks on the
+   simple model and moderate tasks on the complex one.
 2. **Choose the route.** If the role's harness is the host and the host can start a
    subagent on a chosen model, it does that. Otherwise it runs the other tool's command
    line through the script that ships with the skill (`agent-run.ps1` on Windows,

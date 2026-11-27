@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy to ~/.agents/roles.json and fill in, or let scripts/install.ps1 -Roles (install.sh --roles) ask and write it. harness is claude, codex or cursor. model is the id or alias that harness accepts. effort is optional. Each role can have one fallback for usage quota exhaustion. hostOverrides.<host>.<role> replaces the whole role, including its fallback.",
+  "$comment": "Copy to ~/.agents/roles.json and fill in, or let scripts/install.ps1 -Roles (install.sh --roles) ask and write it. harness is claude, codex or cursor. model is the id or alias that harness accepts. effort is optional. Each role can have one fallback for usage quota exhaustion. hostOverrides.<host>.<role> replaces the whole role, including its fallback. The four coder roles go from coder-mechanical (lowest) to coder-complex; one you leave out runs as the next coder role above it that is here.",
   "roles": {
     "planner": {
       "harness": "claude",
@@ -7,11 +7,13 @@
       "effort": "<level>",
       "fallback": { "harness": "codex", "model": "<model id>", "effort": "<level>" }
     },
-    "coder-simple":  { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
-    "coder-complex": { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
-    "reviewer":      { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
-    "council-a":     { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
-    "council-b":     { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" }
+    "coder-mechanical": { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "coder-simple":     { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "coder-moderate":   { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "coder-complex":    { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "reviewer":         { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "council-a":        { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" },
+    "council-b":        { "harness": "<claude|codex|cursor>", "model": "<model id>", "effort": "<level>" }
   },
   "hostOverrides": {
     "cursor": {
