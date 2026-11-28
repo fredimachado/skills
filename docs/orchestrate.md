@@ -41,9 +41,11 @@ The steps:
    `coder-moderate` when the coder still makes local choices across several modules, and
    `coder-complex` for concurrency, migrations and other hard cases. In doubt it takes
    the higher role. You can give each role its own model, or fewer: see
-   [delegate](delegate.md).
+   [delegate](delegate.md). A coder also fixes the callers, tests and fixtures its change
+   breaks, and reports them.
 5. **Review.** It runs the checks itself, confirms the new tests fail without the change,
-   drives the application, then calls `review-loop`.
+   drives the application, then calls `review-loop`. It tells the reviewer what load the
+   code is expected to carry, as recorded in the task file.
 6. **Fix.** Fixes go back to the coder that wrote the code. The loop has hard caps. If the
    same finding stays open for two rounds, it stops patching and rethinks the design
    or moves the task one coder role up.

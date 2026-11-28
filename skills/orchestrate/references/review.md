@@ -48,7 +48,8 @@ goes under Not verified. Never send it to a coder to fix.
 ## Calling review-loop
 
 Pass: base SHA and head SHA of the task, its paths, the intent from the
-plan, what is out of scope, the invariants, the results above, the plan file
+plan, what is out of scope, the expected load from the task file, the
+invariants, the results above, the plan file
 path, `reviewer` as the one reviewer role, and the task's remaining round
 budget. The ledger is the task file's. Read the diff yourself as well,
 against the brief: is the sketch's binding part implemented, and is each

@@ -33,6 +33,8 @@ Read <absolute path to plan/references/sketches.md> and follow it.
    redesign, delivered in slices.
 3. What is deleted or simplified before anything is added.
 4. For each slice: data shapes and types; signatures to add or change;
+   what else the slice must reach (the callers, tests, fixtures, config and
+   exports that use what it changes, found by a search);
    control flow that is not obvious, and parsing at boundaries; tests to
    write first (name, what each asserts, why it fails before the change);
    invariants with one test each (stateful or migration work); a `path:line`

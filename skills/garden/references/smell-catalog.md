@@ -129,7 +129,7 @@ These deserve top priority when found, because agents copy them most readily:
 
 | Signal | Usually fine when… | A weed when… |
 |---|---|---|
-| workaround-marker | The external constraint still exists and the workaround is necessary and scoped | The constraint is gone, or the workaround spreads beyond it; an issue link alone proves neither |
+| workaround-marker | The external constraint still exists and the workaround is necessary and scoped; a `shortcut:` comment names its limit and when to upgrade, and the code is still inside that limit | The constraint is gone, or the workaround spreads beyond it; an issue link alone proves neither; a `shortcut:` comment names no trigger, or the code has passed its limit |
 | suppression | Narrow, with a reason, at a genuine boundary (generated code, FFI) | Blanket, unexplained, or in business logic |
 | swallowed-error | Deliberately ignored with a comment saying why (cleanup on shutdown) | Anywhere the error could matter |
 | sleep-sync | Retry back-off, rate limiting, animation timing | Waiting for something to "be ready" |
@@ -138,4 +138,4 @@ These deserve top priority when found, because agents copy them most readily:
 | loose-type | At a typed/untyped boundary, immediately narrowed | Spread through internal code |
 | vacuous-test | The assertion protects the actual contract or is a precondition followed by a behavior check | A plausible regression in the intended behavior would pass all assertions |
 | constraint-comment | It describes something the project can't change (a vendor quirk, a protocol, a generated file), or it's user-facing text | It states a rule about the project's own code that a type, test or guard could enforce |
-| large file | Generated, or a data table | Hand-written logic that keeps growing |
+| large file | Generated, or a data table | Hand-written logic that keeps growing. Split it by job, never by line count |

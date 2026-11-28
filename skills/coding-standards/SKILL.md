@@ -22,7 +22,18 @@ Include these standards in every coding-agent brief (require adherence). Structu
 **Laziness protocol**
 
 - One decision lives in one place.
-- Ship the smallest edit that solves the problem — within a design that can hold the requirement (see Redesign precedence below).
+- Ship the smallest edit that solves the whole problem — within a design that can hold the requirement (see Redesign precedence below).
+- Before you write new code, take the first of these that fully works:
+  1. Nothing. The request does not need it: no option, abstraction or "for later" code nobody asked for.
+  2. What this codebase already has, used the way the surrounding code uses it.
+  3. The standard library or the platform, unless the project has its own way.
+  4. A dependency that is already installed. Never add one for a few lines.
+- Smallest never means leaving out a check where outside data enters, error handling that prevents data loss, security, accessibility, or a layer the surrounding code goes through. Code you move or merge keeps its error handling and validation.
+
+**Know what the change reaches**
+
+- Before you write, list every place the change must reach: callers, tests, fixtures, config, exports, docs.
+- The change is finished when all of them are. A rename that leaves a fixture on the old name is half a change.
 
 **Foundational thinking**
 
@@ -101,6 +112,7 @@ Separate before serializing shared state:
 
 - Reproduce it.
 - Fix the cause.
+- Before you edit, search for every caller of the function you touch. When they share the fault, fix it once in the shared code: a fix in the one caller the report names leaves the others broken.
 - A guard that only hides the crash is not a fix.
 - A test that fails only sometimes is a bug until shown otherwise. Find the cause; do not rerun it until it passes, and do not add a sleep.
 

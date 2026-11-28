@@ -22,8 +22,15 @@ The standards come in three parts.
 
 **First make it work.**
 
-- Make the smallest edit that solves the problem, inside a design that can hold the
+- Make the smallest edit that solves the whole problem, inside a design that can hold the
   requirement. If the design cannot hold it, redesign in slices.
+- Before writing new code, use what is already there: the codebase first, then the
+  standard library or the platform, then a dependency that is already installed. No new
+  dependency for a few lines.
+- Smallest never means dropping a check on outside data, error handling that prevents data
+  loss, security, accessibility, or a layer the surrounding code goes through.
+- Before writing, list every place the change must reach: callers, tests, fixtures,
+  config, exports, docs.
 - Get the data shape right before writing the logic.
 - Write the failing test first, and see it fail for the reason you expect.
 - Take complexity out before adding anything.
@@ -33,7 +40,8 @@ The standards come in three parts.
 
 **Then make it right.**
 
-- Reproduce a bug and fix its cause. A guard that hides the crash is not a fix.
+- Reproduce a bug and fix its cause. Search for every caller of the function first, and
+  fix a shared fault once in the shared code. A guard that hides the crash is not a fix.
 - A test that fails only sometimes is a bug.
 - Test what the user of the code would see, not how the code is built inside.
 - To refactor, pin the behavior, change the structure, then prove the behavior did not

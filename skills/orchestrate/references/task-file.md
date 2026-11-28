@@ -20,6 +20,7 @@ You are its only writer. Write each entry when it happens, not at the end.
 > "Skills in use" again before your next action. Their rules still hold.
 
 - **Goal:** <one or two sentences>
+- **Expected load:** <who runs this and how many at once, from the README and the deploy configuration, or "not stated">
 - **Finish condition:** local | open-for-review | merge-ready
 - **Where:** <branch / worktree path(s)>, base `<base branch>` at `<base SHA>`
 - **Plan:** <absolute path of the plan file, or "inline below">
@@ -73,15 +74,15 @@ You are its only writer. Write each entry when it happens, not at the end.
 | Id | Task | Severity | Where | Finding | Raised by | Outcome |
 |---|---|---|---|---|---|---|
 | F1 | T1 | must-fix | `path/file.go:42` | <what is wrong; what correct looks like> | reviewer | fixed in `9ab0cde` |
-| F2 | T1 | should-fix | `path/file.go:88` | <...> | orchestrator | deferred: <reason> |
+| F2 | T1 | should-fix | `path/file.go:88` | <...> | orchestrator | deferred: <reason>, revisit when <trigger> |
 
 Outcome is one of: open · fixed in `<sha>` · declined with evidence: <evidence> ·
-deferred: <reason> · disputed: <both sides in one line each>.
+deferred: <reason>, revisit when <trigger> · disputed: <both sides in one line each>.
 Ids are stable for the whole feature and never reused. A finding that comes
 back in a later round keeps its id.
 
 ## Deferred
-- F2 (T1) — <what>, why deferred, suggested follow-up (separate PR / issue)
+- F2 (T1) — <what>, why deferred, revisit when <trigger>, suggested follow-up (separate PR / issue)
 - Noticed by the T1 coder, left alone — <what>, suggested follow-up
 
 ## Decisions

@@ -56,6 +56,7 @@ SIGNALS = {
         "patterns": [
             r"\b(?:TODO|FIXME|HACK|XXX|KLUDGE)\b",
             r"(?i)\b(?:workaround|work-around|band-?aid|quick fix|temp(?:orary)? fix|for now|until we)\b",
+            r"(?:#|//|/\*|--)\s*shortcut:",
         ],
         "code_only": True,
     },

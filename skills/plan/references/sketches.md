@@ -10,6 +10,8 @@ identifiers:
 
 - the data shapes and types, first
 - the signatures of the functions and methods to add or change
+- what else the change must reach: the callers, tests, fixtures, config and
+  exports that use what it changes
 - the control flow of anything not obvious, including parsing and error
   handling at boundaries
 - a pointer to the existing code to imitate (`path:line`)

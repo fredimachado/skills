@@ -194,4 +194,6 @@ with every change to a skill.
 [tstack](https://github.com/t3dotgg/tstack) (MIT). The review of a plan against the
 code, the bar a reviewer's finding must meet, the baseline for failures, and several rules
 for coder briefs and pull request descriptions follow [graft](https://github.com/pleb/graft)
-(MIT).
+(MIT). The order of what to reuse before writing new code, what "smallest" never leaves
+out, the search for callers before a fix, the expected load in a review and the
+`shortcut:` comment follow [ponytail](https://github.com/dietrichgebert/ponytail) (MIT).

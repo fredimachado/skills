@@ -19,7 +19,8 @@ a list of findings that survives the whole loop, and never treats silence as app
 ## How it works
 
 1. **Collect the inputs.** The exact range of commits, what the change is meant to do,
-   what it must not touch, and the results of the checks the caller already ran.
+   what it must not touch, the load the code is expected to carry, and the results of the
+   checks the caller already ran.
 2. **Start a reviewer.** It only reads. It is a fresh agent that has seen none of the
    conversation, and where possible a different model from the one that wrote the code.
    A confirmed usage cap can switch the role to its configured fallback.
@@ -38,8 +39,14 @@ a list of findings that survives the whole loop, and never treats silence as app
    happened to each.
 
 There are two severities. A `must-fix` blocks the change. A `should-fix` can be deferred
-with a reason. If the budget runs out with a must-fix open, the change is not ready.
-Reaching the cap is never approval.
+with a reason and a note of what would make it worth picking up. If the budget runs out
+with a must-fix open, the change is not ready. Reaching the cap is never approval.
+
+A problem that was already there in code the change did not touch is out of scope. Code
+the change did not touch but breaks is a `must-fix`: when a signature, a name or a
+behavior changed, the reviewer searches the repository for everything that uses it.
+Scale is judged against the expected load, so a race that only many users at once can
+hit is no finding in a script one person runs.
 
 The same loop also reviews a plan or a document before anything is built from it.
 

@@ -28,7 +28,8 @@ person can review from.
    - the solution, briefly
    - how it was verified in the running application
    - what was not verified, and why
-   - findings that were deferred, each with its reason
+   - findings that were deferred, each with its reason and what would make it worth
+     picking up
    - the review and the council, when they ran
    - which models and tools made the change
 4. **Follow the repository's template** when it has one. The template's sections win.

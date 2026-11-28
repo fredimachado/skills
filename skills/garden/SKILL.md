@@ -50,7 +50,9 @@ grew.
 The signals are **hints, not verdicts**. A `sleep` in a retry back-off is fine; a `sleep`
 waiting for a UI to render is a candidate for investigation. Read the surrounding code and
 callers before judging. Supplement scanner results with searches for stale or misleading
-comments, duplicate logic, unnecessary abstractions, and bypassed validation.
+comments, duplicate logic, unnecessary abstractions, and bypassed validation. Before you
+call code unused, search the whole tree for its name: tests, fixtures, config, and names
+built from strings or loaded at run time.
 
 Find other occurrences of each suspected problem and group them under one finding. Verify
 representative file:line locations; scanner matches are not confirmed violation counts.
@@ -140,6 +142,10 @@ Preserve useful explanations of intent, external constraints, non-obvious decisi
 required legal notices. Investigate whether a workaround is still necessary before
 recommending its removal. A linked issue alone does not establish that it is justified.
 
+A `shortcut: <limit>, <when to upgrade>` comment records a decision. Leave it while the
+code stays inside the limit it names. One that names no trigger, or whose limit the code
+has passed, is a finding: nothing will ever prompt anyone to revisit it.
+
 Comments that state a rule ("do not remove", "keep in sync with X", "must match Y") are
 guidance pretending to be enforcement. For each one that's about the project's own code,
 ask what would make it true by construction: generate one side from the other, a test that
@@ -159,6 +165,9 @@ Order: create missing blessed examples → fix copy sources and high-churn files
 else. Include the root cause, files, smallest practical replacement (delete, simplify,
 consolidate, or refactor), and how to verify both preserved behavior and prevention of new
 occurrences. A lower guard count alone does not prove behavior is correct.
+
+Split a large file or function by job, never by line count, and never into helpers that
+exist only to make it shorter.
 
 Cleanup tasks are refactorings. Whoever does one (you, in Weed mode, or a later agent)
 should follow the `playbook-refactoring` skill if it's available: pin the behaviour first,

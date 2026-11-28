@@ -44,7 +44,8 @@ In this order:
    is a way to upload it. When a before shot was taken at the base, show
    both.
 4. **What was not verified**, and why.
-5. **Deferred findings**, by id, each with its reason.
+5. **Deferred findings**, by id, each with its reason and what would make
+   it worth picking up.
 6. **Review**, when a reviewer ran: rounds, the reviewer's harness and model,
    and the final verdict with the head SHA it covers.
 7. **Council**, when one ran: rounds, each seat's role, harness and model, and

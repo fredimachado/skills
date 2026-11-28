@@ -27,7 +27,8 @@ against the real code.
 3. **Save the plan** outside the repository and give you its path.
 4. **The plan holds** the problem, acceptance criteria that can be checked, what to delete
    before adding anything, and the work cut into slices. Each slice lists its data shapes,
-   signatures, the tests to write first, a place in the existing code to imitate, and how
+   signatures, what else it must reach (the callers, tests and fixtures that use what it
+   changes), the tests to write first, a place in the existing code to imitate, and how
    the result will be seen working in the real application.
 5. **Gate.** The caller runs a checklist. Can each criterion be checked? Is every hard
    problem addressed instead of postponed? Does every file and function the plan names

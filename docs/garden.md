@@ -27,10 +27,11 @@ It runs in one of three modes.
 
 The steps:
 
-1. **Scan.** The bundled `scan.py` counts warning signs: workaround markers, suppressed
-   warnings, swallowed errors, sleeps used as waits, disabled tests, rules that exist only
-   in comments. It compares the counts with an earlier point in time. These are hints. A
-   sleep in a retry is fine, so the agent reads the code before judging.
+1. **Scan.** The bundled `scan.py` counts warning signs: workaround markers (`shortcut:`
+   comments included), suppressed warnings, swallowed errors, sleeps used as waits,
+   disabled tests, rules that exist only in comments. It compares the counts with an
+   earlier point in time. These are hints. A sleep in a retry is fine, so the agent reads
+   the code before judging.
 2. **Look for competing ways to do one thing.** Two HTTP clients, two date libraries, two
    logging styles. An agent picks whichever it read last.
 3. **Gather more evidence.** Which files change most, which files agents copy from, what
@@ -40,7 +41,8 @@ The steps:
 5. **Decide the blessed path** for each finding, the one way it should be done. If the
    codebase has no good example yet, creating one is the first cleanup task.
 6. **Guard first.** Propose the strongest practical check for each top finding.
-7. **Plan the cleanup** as tasks small enough for one pull request each.
+7. **Plan the cleanup** as tasks small enough for one pull request each. A large file is
+   split by job, never by line count.
 8. **Write the report** to `.agent/garden/reports/`. It includes the signals that were
    reviewed and dismissed, so the next pass does not chase them again.
 

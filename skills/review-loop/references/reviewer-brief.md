@@ -18,6 +18,8 @@ commands.
 
 Intent: <what the change is meant to do>
 Out of scope: <what it must not touch; do not raise findings about it>
+Expected load: <who runs this and how many at once: one person running a
+script, or many users and processes; or "not stated">
 Invariants: <list, or "none">
 Plan: <absolute path to the plan file and section, or "none">
 <for risky work only> Risk: <security | data loss or migration | concurrency

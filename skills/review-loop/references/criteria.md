@@ -6,9 +6,10 @@ what was skipped; the code says what was done.
 ## Two kinds of finding
 
 - **must-fix**: the change is wrong or unsafe to build on. Incorrect
-  behavior, a broken contract from the plan, failing build or tests, a
-  scenario that does not work when driven in the real application, data loss
-  or a security hole, a behavior change with no test and no accepted
+  behavior, code outside the diff that the change breaks, a broken contract
+  from the plan, failing build or tests, a scenario that does not work when
+  driven in the real application, data loss or a security hole, a failure at
+  the expected load, a behavior change with no test and no accepted
   justification, or a root cause hidden behind a guard.
 - **should-fix**: it works, but leaves a real cost a careful maintainer would
   insist on removing. One decision living in two places, an edge case the
@@ -18,9 +19,10 @@ what was skipped; the code says what was done.
 
 Leave everything else alone. Style preferences, naming taste, equally good
 alternative approaches, and anything a formatter handles are not findings.
-Neither are paths the change did not touch, rare cases the intended use will
-not reach, small performance costs, or extra compatibility. Each round costs
-a full fix turn, and nit-picks bury the findings that matter.
+Neither are problems that were already there in code the change did not
+touch, rare cases the intended use will not reach, small performance costs,
+or extra compatibility. Each round costs a full fix turn, and nit-picks bury
+the findings that matter.
 
 ## The bar for a finding
 
@@ -35,7 +37,10 @@ Report a finding only when you can show how it goes wrong:
 
 Without that, read further until you have it, or drop the candidate. Read
 past the diff: the changed functions in full, then their callers, then the
-tests that cover them. Never cite a line, a call site or a behavior you have
+tests that cover them. When a signature, a return value, a name or a
+behavior changed, search the repository for everything that uses it:
+callers, tests, fixtures, config. A change can break code it does not touch,
+and that is a finding. Never cite a line, a call site or a behavior you have
 not read, and label an inference as one. Check the intent and the caller's
 check results against the code like any other claim. Finding nothing is a
 valid result: do not raise findings to look thorough.
@@ -68,20 +73,31 @@ especially:
   impracticality note is must-fix.
 - **Behavior, not implementation**: tests exercise the caller's contract;
   hollow tests go.
-- **Root causes**: no crash-hiding guard presented as a fix.
+- **Root causes**: no crash-hiding guard presented as a fix, and no fix in
+  one caller while the shared function stays broken.
 - **Attack the premise**: repeated failures of one gate that share an
   assumption. Must-fix to name and change that assumption.
 - **Boundary and type discipline**: validate at the edge; illegal values
   unrepresentable; no silenced compiler.
 - **Subtract before add**: complexity added without removing any.
-- **Surplus**: code, tests, guards or options the intent does not need. Hold
-  the change to the smallest one that does the job. Should-fix, and the fix
-  is to remove them.
+- **Surplus**: code, tests, guards or options the intent does not need: a
+  helper the repository already has (name the path), what the standard
+  library or the platform already does, a new dependency for a few lines, an
+  abstraction with one implementation. Hold the change to the smallest one
+  that does the job. Should-fix, and the fix is to remove them. Never
+  surplus: a check where outside data enters, error handling that prevents
+  data loss, a security or accessibility measure, a layer the surrounding
+  code goes through.
 - **No bolted-on design**: a requirement patched onto a design that cannot
   hold it.
 - **Idempotency and single writer**: must-fix when the change touches
   migration, shared state or crash recovery; otherwise should-fix.
 - **Invariants**: each listed invariant has its test, and it passes.
+- **Scale**: judged against the expected load in the brief. A
+  check-then-write race, the same work done by every process, a list or
+  memory that only grows, a query per item, state kept per process that must
+  be shared. Must-fix when the expected load reaches it; beyond that load it
+  is not a finding. When the brief gives no load, say which one you assumed.
 - **Comments and stale text**: a comment that narrates the change or
   restates the code, or a doc, example or message the change made wrong.
   Should-fix. A missing comment is not a finding.
@@ -139,8 +155,10 @@ and what breaks when the slice is carried out as written.
 
 Fix now when the fix is small and inside code the change already touches.
 Defer to a later change when it widens the scope, touches unrelated code, or
-needs a design decision of its own, and record the reason. When the review
-budget is spent, defer rather than apply a fix nobody will review. Must-fix
+needs a design decision of its own. Record the reason and the trigger: what
+would make it worth picking up. A deferral with no trigger is never picked
+up. When the review budget is spent, defer rather than apply a fix nobody
+will review. Must-fix
 items are never deferred; if one cannot be fixed, stop and tell the owner.
 
 ## Ledger
@@ -152,7 +170,8 @@ The caller keeps it; with `orchestrate` it lives in the task file.
 | F1 | must-fix | `path/file.go:42` | what is wrong; what correct looks like | reviewer (harness/model) | fixed in `9ab0cde` |
 
 Outcome is one of: open · fixed in `<sha>` · declined with evidence:
-`<evidence>` · deferred: `<reason>` · disputed: both sides in one line each.
+`<evidence>` · deferred: `<reason>`, revisit when `<trigger>` · disputed:
+both sides in one line each.
 Ids are stable for the whole change and never reused. A finding that comes
 back in a later round keeps its id. Mark a finding fixed only after you
 checked the fix yourself.

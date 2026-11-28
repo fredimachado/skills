@@ -72,6 +72,8 @@ task file links it there.
 4. For each slice, in this order:
    - data shapes and types
    - signatures of functions to add or change
+   - what else the slice must reach: the callers, tests, fixtures, config
+     and exports that use what it changes, found by a search
    - control flow that is not obvious, and parsing at boundaries
    - tests to write first: name, what each asserts, and why it fails before
      the change
