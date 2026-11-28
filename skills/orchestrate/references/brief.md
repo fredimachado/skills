@@ -22,6 +22,10 @@ Read and follow <absolute path to coding-standards/SKILL.md>. They are required.
 - Out of scope, do not touch: <paths / areas>
 - A bug next door, a stale comment or a tempting refactor goes in your
   report, not in your diff.
+- The fault you are fixing is not next door when other callers reach it
+  through the same function. Fix it once in that function, so every caller
+  is covered, and list those callers in your report. If the function lies
+  in an out-of-scope path, stop and report instead.
 - What your change breaks is part of the task: a caller, a test or a fixture
   that used the old name or shape. Search for them, fix them, and list them
   in your report. If one lies in an out-of-scope path, stop and report

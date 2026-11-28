@@ -42,7 +42,9 @@ The steps:
    `coder-complex` for concurrency, migrations and other hard cases. In doubt it takes
    the higher role. You can give each role its own model, or fewer: see
    [delegate](delegate.md). A coder also fixes the callers, tests and fixtures its change
-   breaks, and reports them.
+   breaks, and reports them. When other callers reach the fault it is fixing through
+   the same function, it fixes that function once instead of the one caller the task
+   names. Any other bug it notices goes in its report, not in its diff.
 5. **Review.** It runs the checks itself, confirms the new tests fail without the change,
    drives the application, then calls `review-loop`. It tells the reviewer what load the
    code is expected to carry, as recorded in the task file.
